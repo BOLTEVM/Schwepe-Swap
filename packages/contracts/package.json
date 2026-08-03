@@ -1,0 +1,20 @@
+{
+  "name": "@schwepeswap/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Contracts for SchwepeSwap AMM on Somnia Network",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:somnia": "hardhat run scripts/deploy.js --network somnia",
+    "deploy:somniaTestnet": "hardhat run scripts/deploy.js --network somniaTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.4"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1"
+  }
+}

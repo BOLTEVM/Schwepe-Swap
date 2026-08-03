@@ -1,0 +1,20 @@
+{
+  "name": "schwepeswap-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SchwepeSwap Decentralized AMM Monorepo on Somnia Network",
+  "author": "SchwepeSwap Team",
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm --recursive run build",
+    "test": "pnpm --recursive run test",
+    "dev:frontend": "pnpm --filter @schwepeswap/frontend dev",
+    "start:indexer": "pnpm --filter @schwepeswap/indexer start",
+    "compile:contracts": "pnpm --filter @schwepeswap/contracts compile",
+    "test:contracts": "pnpm --filter @schwepeswap/contracts test",
+    "pipeline:sdk": "pnpm --filter @schwepeswap/sdk run pipeline"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}

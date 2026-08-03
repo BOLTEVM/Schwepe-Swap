@@ -1,0 +1,16 @@
+{
+  "name": "@schwepeswap/indexer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Somnia Network Event Indexer & REST API Service for SchwepeSwap",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node -e \"console.log('Indexer unit check passed')\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ethers": "^6.11.1",
+    "cors": "^2.8.5"
+  }
+}

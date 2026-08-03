@@ -1,0 +1,25 @@
+{
+  "name": "@schwepeswap/sdk",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "TypeScript SDK & Async Web3 Pipeline Engine for SchwepeSwap on Somnia Network",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "node dist/index.js",
+    "pipeline": "ts-node src/pipeline.ts"
+  },
+  "dependencies": {
+    "@thirdweb-dev/sdk": "^4.0.0",
+    "thirdweb": "^5.0.0",
+    "ethers": "^6.11.1"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
