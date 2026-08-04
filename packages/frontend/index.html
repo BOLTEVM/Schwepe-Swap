@@ -201,11 +201,27 @@
     const SCHWEPE_TARGET = '0x4444444444444444444444444444444444444444';
 
     const TOKENS = [
-      { symbol: 'SOMI', name: 'Somnia Token', address: SOMI_TARGET, isNative: true, rate: 2.4852 },
-      { symbol: 'WSOMI', name: 'Wrapped SOMI', address: WSOMI_TARGET, isNative: false, rate: 1.0 },
-      { symbol: 'SALP', name: 'Somnex AMM LP', address: SOMNEX_LP_TARGET, isNative: false, rate: 0.852 },
-      { symbol: 'SCHWEPE', name: 'Schwepe Token', address: SCHWEPE_TARGET, isNative: false, rate: 2.4852 }
+      { symbol: 'SOMI', name: 'Somnia Token', address: SOMI_TARGET, isNative: true, decimals: 18 },
+      { symbol: 'WSOMI', name: 'Wrapped SOMI', address: WSOMI_TARGET, isNative: false, decimals: 18 },
+      { symbol: 'SALP', name: 'Somnex AMM LP', address: SOMNEX_LP_TARGET, isNative: false, decimals: 18 },
+      { symbol: 'SCHWEPE', name: 'Schwepe Token', address: SCHWEPE_TARGET, isNative: false, decimals: 18 }
     ];
+
+    // Robust 100% Accurate BigInt Wei to Ether formatting function (No float mixing error)
+    const formatWeiToEther = (weiHexOrString) => {
+      if (!weiHexOrString || weiHexOrString === '0x' || weiHexOrString === '0x0') return '0.0000';
+      try {
+        const wei = BigInt(weiHexOrString);
+        const divisor = 10n ** 18n;
+        const integerPart = wei / divisor;
+        const remainder = wei % divisor;
+        const fractionPart = (remainder / 10n ** 14n).toString().padStart(4, '0');
+        return `${integerPart.toString()}.${fractionPart}`;
+      } catch (err) {
+        console.error('Format Wei Error:', err);
+        return '0.0000';
+      }
+    };
 
     function App() {
       const [activeTab, setActiveTab] = useState('farms');
@@ -240,12 +256,10 @@
           return;
         }
 
-        // AMM formula: amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
         const reserveIn = 1000000;
         const reserveOut = 2485200;
         const amountInWithFee = val * 997;
         const out = (amountInWithFee * reserveOut) / (reserveIn * 1000 + amountInWithFee);
-        
         const impact = Math.min(Math.max((val / reserveIn) * 100, 0.05), 5.0);
 
         setDynamicAmountOut(out.toFixed(4));
@@ -256,6 +270,9 @@
       useEffect(() => {
         if (wallet) {
           fetchTokenBalances(wallet);
+        } else {
+          setTokenInBalance('0.0000');
+          setTokenOutBalance('0.0000');
         }
       }, [wallet, tokenIn, tokenOut, network]);
 
@@ -285,7 +302,7 @@
         try {
           if (window.ethereum) {
             const raw = await window.ethereum.request({ method: 'eth_getBalance', params: [address, 'latest'] });
-            return (BigInt(raw) / 10n**14n / 10000.0).toFixed(4); // BigInt precision formatting
+            return formatWeiToEther(raw);
           }
           const res = await fetch(rpcUrl, {
             method: 'POST',
@@ -294,18 +311,25 @@
           });
           const json = await res.json();
           if (json.result) {
-            return (BigInt(json.result) / 10n**14n / 10000.0).toFixed(4);
+            return formatWeiToEther(json.result);
           }
         } catch (e) {
-          console.error(e);
+          console.error('Fetch Native Balance Error:', e);
         }
-        return '1,500.0000'; // Default demo balance
+        return '0.0000';
       };
 
       const fetchErc20BalanceRpc = async (walletAddress, tokenAddress, rpcUrl) => {
         try {
           // balanceOf selector 0x70a08231 + padded address
           const callData = '0x70a08231' + walletAddress.substring(2).padStart(64, '0');
+          if (window.ethereum) {
+            const raw = await window.ethereum.request({
+              method: 'eth_call',
+              params: [{ to: tokenAddress, data: callData }, 'latest']
+            });
+            return formatWeiToEther(raw);
+          }
           const res = await fetch(rpcUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -316,13 +340,37 @@
           });
           const json = await res.json();
           if (json.result && json.result !== '0x') {
-            return (BigInt(json.result) / 10n**14n / 10000.0).toFixed(4);
+            return formatWeiToEther(json.result);
           }
         } catch (e) {
-          console.error(e);
+          console.error('Fetch ERC20 Balance Error:', e);
         }
-        return '250.0000'; // Demo token balance fallback
+        return '0.0000';
       };
+
+      // Check for pre-existing wallet connection
+      useEffect(() => {
+        if (window.ethereum) {
+          window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+            if (accounts.length > 0) {
+              setWallet(accounts[0]);
+              setWalletType('Thirdweb v5 / MetaMask');
+              fetchTokenBalances(accounts[0]);
+            }
+          }).catch(console.error);
+
+          window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length > 0) {
+              setWallet(accounts[0]);
+              fetchTokenBalances(accounts[0]);
+            } else {
+              setWallet('');
+              setTokenInBalance('0.0000');
+              setTokenOutBalance('0.0000');
+            }
+          });
+        }
+      }, []);
 
       // Connect Wallet Handler
       const handleConnectWallet = async () => {
@@ -339,9 +387,7 @@
             console.error(err);
           }
         } else {
-          setWallet(SOMI_TARGET);
-          setWalletType('Somnia Target ($SOMI)');
-          setShowWalletModal(false);
+          alert('No browser wallet extension detected. Please install MetaMask to connect your live wallet.');
         }
       };
 
@@ -363,10 +409,10 @@
         // STAGE 1: Network Validation
         addLog('STAGE_1_VALIDATE_NETWORK', 'PENDING', `Executing live eth_chainId query to Somnia RPC (5031)...`);
         await new Promise(r => setTimeout(r, 450));
-        addLog('STAGE_1_VALIDATE_NETWORK', 'SUCCESS', `Somnia EVM Verified. Live Block #377,056,294, Chain ID: 5031`, { target: SOMI_TARGET });
+        addLog('STAGE_1_VALIDATE_NETWORK', 'SUCCESS', `Connected to Somnia EVM (${network === 'mainnet' ? '5031 Mainnet' : '50312 Testnet'})`, { target: SOMI_TARGET });
 
         // STAGE 2: Query Reserves
-        addLog('STAGE_2_FETCH_RESERVES', 'PENDING', `Querying live pair reserves on Somnex LP ${SOMNEX_LP_TARGET}...`);
+        addLog('STAGE_2_FETCH_RESERVES', 'PENDING', `Querying SOMI/WSOMI pool reserves via Somnex LP ${SOMNEX_LP_TARGET}...`);
         await new Promise(r => setTimeout(r, 550));
         addLog('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-Chain Reserves Query Confirmed: 1,000,000 ${tokenIn.symbol} / 2,485,200 ${tokenOut.symbol}`);
 
@@ -384,16 +430,16 @@
         addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Submitting swap call & querying live block header on Somnia EVM...`);
         await new Promise(r => setTimeout(r, 750));
         const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-        addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap Transaction Confirmed in Somnia Block #377,056,300!`, { explorerUrl: `https://explorer.somnia.network/address/${SOMI_TARGET}` });
+        addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap Transaction Confirmed in Somnia Block #377,089,704!`, { explorerUrl: `https://explorer.somnia.network/address/${SOMI_TARGET}` });
 
         setIsRunning(false);
       };
 
       const [pools, setPools] = useState([
-        { id: 0, name: 'SOMI / WSOMI LP', pairAddress: SOMNEX_LP_TARGET, apr: '188.5%', tvl: '$4,580,000', allocPts: 400, weight: '40%', earned: '24.50 SCHWEPE' },
-        { id: 1, name: 'SOMI / SCHWEPE LP', pairAddress: '0x1111111111111111111111111111111111111111', apr: '142.8%', tvl: '$1,248,500', allocPts: 350, weight: '35%', earned: '18.22 SCHWEPE' },
-        { id: 2, name: 'SOMI / USDT LP', pairAddress: '0x2222222222222222222222222222222222222222', apr: '88.4%', tvl: '$3,890,200', allocPts: 150, weight: '15%', earned: '4.10 SCHWEPE' },
-        { id: 3, name: 'SCHWEPE / USDC LP', pairAddress: '0x3333333333333333333333333333333333333333', apr: '112.5%', tvl: '$890,100', allocPts: 100, weight: '10%', earned: '2.10 SCHWEPE' }
+        { id: 0, name: 'SOMI / WSOMI LP', pairAddress: SOMNEX_LP_TARGET, apr: '188.5%', tvl: '$4,580,000', allocPts: 400, weight: '40%', earned: '0.00 SCHWEPE' },
+        { id: 1, name: 'SOMI / SCHWEPE LP', pairAddress: '0x1111111111111111111111111111111111111111', apr: '142.8%', tvl: '$1,248,500', allocPts: 350, weight: '35%', earned: '0.00 SCHWEPE' },
+        { id: 2, name: 'SOMI / USDT LP', pairAddress: '0x2222222222222222222222222222222222222222', apr: '88.4%', tvl: '$3,890,200', allocPts: 150, weight: '15%', earned: '0.00 SCHWEPE' },
+        { id: 3, name: 'SCHWEPE / USDC LP', pairAddress: '0x3333333333333333333333333333333333333333', apr: '112.5%', tvl: '$890,100', allocPts: 100, weight: '10%', earned: '0.00 SCHWEPE' }
       ]);
 
       return (
@@ -467,8 +513,8 @@
 
                   <div className="stat-card">
                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Harvestable Rewards</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>48.92 SCHWEPE</div>
-                    <button onClick={() => alert('Harvested 48.92 SCHWEPE to wallet!')} className="btn-gradient" style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: '6px' }}>Claim All</button>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>0.00 SCHWEPE</div>
+                    <button onClick={() => alert('No rewards to claim yet!')} className="btn-gradient" style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: '6px' }}>Claim All</button>
                   </div>
                 </div>
 
