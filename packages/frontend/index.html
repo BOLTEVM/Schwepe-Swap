@@ -541,7 +541,15 @@
                     </div>
                   </div>
 
-                  <img src={currentMeme.image} alt={currentMeme.title} className="brand-img" />
+                  <img 
+                    src={currentMeme.image} 
+                    alt={currentMeme.title} 
+                    className="brand-img"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://explorer.somnia.network/assets/favicon/favicon-32x32.png';
+                    }} 
+                  />
                 </div>
 
                 {/* Global Metrics Dashboard */}
