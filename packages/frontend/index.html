@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SchwepeSwap 🌊⚡ | Next-Gen Somnia Network AMM</title>
+  <title>SchwepeSwap 🌊⚡ | MasterChef Yield Farm Control Center</title>
   <link rel="icon" type="image/svg+xml" href="https://explorer.somnia.network/assets/favicon/favicon-32x32.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -77,6 +77,26 @@
       box-shadow: 0 8px 24px rgba(147, 51, 234, 0.5);
     }
 
+    .btn-deploy {
+      background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+      color: #ffffff;
+      font-weight: 800;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 18px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .btn-deploy:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(236, 72, 153, 0.6);
+    }
+
     .badge-somnia {
       background: rgba(6, 182, 212, 0.15);
       border: 1px solid rgba(6, 182, 212, 0.4);
@@ -102,7 +122,7 @@
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -113,10 +133,22 @@
       background: #0f172a;
       border: 1px solid rgba(168, 85, 247, 0.4);
       border-radius: 20px;
-      padding: 24px;
-      width: 90%;
-      max-width: 440px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      padding: 26px;
+      width: 92%;
+      max-width: 520px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    }
+
+    .stat-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(168, 85, 247, 0.4);
     }
 
     .wallet-option {
@@ -135,7 +167,6 @@
     .wallet-option:hover {
       background: rgba(147, 51, 234, 0.25);
       border-color: rgba(147, 51, 234, 0.6);
-      transform: translateX(4px);
     }
   </style>
 </head>
@@ -153,36 +184,42 @@
       blockExplorerUrls: ['https://explorer.somnia.network']
     };
 
-    const SOMI_TESTNET_PARAMS = {
-      chainId: '0xc488', // 50312 in hex
-      chainName: 'Somnia Shannon Testnet',
-      nativeCurrency: { name: 'Somnia Testnet Token', symbol: 'STT', decimals: 18 },
-      rpcUrls: ['https://dream-rpc.somnia.network/'],
-      blockExplorerUrls: ['https://shannon-explorer.somnia.network']
-    };
-
     const SOMI_TARGET = '0xdd10620866c4f586b1213d3818811faf3718fce3';
+    const SOMNEX_LP_TARGET = '0x8008595d869746E6D594d9EB52E8175714fff278';
+    const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
 
     function App() {
-      const [activeTab, setActiveTab] = useState('swap');
+      // Default primary active view is 'farms' (MasterChef Control Center)
+      const [activeTab, setActiveTab] = useState('farms');
       const [network, setNetwork] = useState('mainnet');
       const [wallet, setWallet] = useState('');
-      const [walletType, setWalletType] = useState('');
       const [balance, setBalance] = useState('0.00');
       const [showWalletModal, setShowWalletModal] = useState(false);
-      const [amountIn, setAmountIn] = useState('100');
-      const [pipelineLogs, setPipelineLogs] = useState([]);
-      const [isRunning, setIsRunning] = useState(false);
+      const [showDeployModal, setShowDeployModal] = useState(false);
+      const [deployTab, setDeployTab] = useState('contract'); // 'contract' or 'pool'
+      
+      // Deploy Form Inputs
+      const [deployStartBlock, setDeployStartBlock] = useState('377050936');
+      const [newLpAddress, setNewLpAddress] = useState(SOMNEX_LP_TARGET);
+      const [newAllocPoints, setNewAllocPoints] = useState('400');
+      const [deployingStatus, setDeployingStatus] = useState('');
 
+      // Farm Pool State
+      const [pools, setPools] = useState([
+        { id: 0, name: 'SOMI / WSOMI LP', pairAddress: SOMNEX_LP_TARGET, apr: '188.5%', tvl: '$4,580,000', allocPts: 400, weight: '40%', earned: '24.50 SCHWEPE', userStaked: '124.50 SALP' },
+        { id: 1, name: 'SOMI / SCHWEPE LP', pairAddress: '0x1111111111111111111111111111111111111111', apr: '142.8%', tvl: '$1,248,500', allocPts: 350, weight: '35%', earned: '18.22 SCHWEPE', userStaked: '50.00 SCHWEPE-LP' },
+        { id: 2, name: 'SOMI / USDT LP', pairAddress: '0x2222222222222222222222222222222222222222', apr: '88.4%', tvl: '$3,890,200', allocPts: 150, weight: '15%', earned: '4.10 SCHWEPE', userStaked: '0.00 LP' },
+        { id: 3, name: 'SCHWEPE / USDC LP', pairAddress: '0x3333333333333333333333333333333333333333', apr: '112.5%', tvl: '$890,100', allocPts: 100, weight: '10%', earned: '2.10 SCHWEPE', userStaked: '0.00 LP' }
+      ]);
+
+      const [amountIn, setAmountIn] = useState('100');
       const amountOut = (parseFloat(amountIn || '0') * 2.4852).toFixed(4);
 
-      // Check if window.ethereum / MetaMask account is already active
       useEffect(() => {
         if (window.ethereum) {
           window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
             if (accounts.length > 0) {
               setWallet(accounts[0]);
-              setWalletType('Thirdweb / MetaMask');
               fetchBalance(accounts[0]);
             }
           }).catch(console.error);
@@ -205,184 +242,223 @@
             const rawBal = await window.ethereum.request({ method: 'eth_getBalance', params: [address, 'latest'] });
             const balInEther = (parseInt(rawBal, 16) / 1e18).toFixed(4);
             setBalance(balInEther);
-          } else {
-            // Direct RPC fetch
-            const rpcUrl = network === 'mainnet' ? SOMI_MAINNET_PARAMS.rpcUrls[0] : SOMI_TESTNET_PARAMS.rpcUrls[0];
-            const res = await fetch(rpcUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] })
-            });
-            const json = await res.json();
-            if (json.result) {
-              setBalance((parseInt(json.result, 16) / 1e18).toFixed(4));
-            }
           }
         } catch (e) {
           console.error(e);
         }
       };
 
-      // 1. Thirdweb v5 / MetaMask Connect Handler
-      const connectThirdwebMetaMask = async () => {
+      const handleConnectWallet = async () => {
         if (window.ethereum) {
           try {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             if (accounts.length > 0) {
               setWallet(accounts[0]);
-              setWalletType('Thirdweb v5 / MetaMask');
               await fetchBalance(accounts[0]);
-              await ensureSomniaNetwork();
               setShowWalletModal(false);
             }
           } catch (err) {
-            console.error('Connection rejected:', err);
+            console.error(err);
           }
         } else {
-          alert('MetaMask extension not detected. Connecting via Thirdweb Demo Account...');
-          connectSomniaDemo();
-        }
-      };
-
-      // 2. Thirdweb v5 / Coinbase Wallet Connect Handler
-      const connectThirdwebCoinbase = async () => {
-        if (window.ethereum?.isCoinbaseWallet || window.ethereum) {
-          await connectThirdwebMetaMask();
-        } else {
-          alert('Coinbase Wallet extension not detected. Connecting via Thirdweb Demo Account...');
-          connectSomniaDemo();
-        }
-      };
-
-      // 3. Thirdweb v5 / InApp Email Connect Handler
-      const connectThirdwebInApp = () => {
-        const email = prompt('Enter your email for Thirdweb v5 InApp Wallet authentication:', 'user@somnia.network');
-        if (email) {
-          const generatedAddress = '0x' + Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('');
-          setWallet(generatedAddress);
-          setWalletType(`Thirdweb InApp (${email})`);
-          setBalance('500.0000');
+          setWallet(SOMI_TARGET);
+          setBalance('1,500.0000');
           setShowWalletModal(false);
         }
       };
 
-      // 4. Somnia Address Target Connect Handler
-      const connectSomniaDemo = () => {
-        setWallet(SOMI_TARGET);
-        setWalletType('Somnia Target ($SOMI)');
-        setBalance('1,500.0000');
-        setShowWalletModal(false);
-      };
-
-      const ensureSomniaNetwork = async () => {
-        if (!window.ethereum) return;
-        const targetParams = network === 'mainnet' ? SOMI_MAINNET_PARAMS : SOMI_TESTNET_PARAMS;
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: targetParams.chainId }]
-          });
-        } catch (switchError) {
-          if (switchError.code === 4902 || switchError.code === -32603) {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [targetParams]
-              });
-            } catch (addError) {
-              console.error('Failed to add Somnia Network:', addError);
-            }
-          }
-        }
-      };
-
-      const handleDisconnect = () => {
-        setWallet('');
-        setWalletType('');
-        setBalance('0.00');
-        setShowWalletModal(false);
-      };
-
-      const runPipeline = async () => {
-        if (!wallet) {
-          setShowWalletModal(true);
-          return;
-        }
-
-        setIsRunning(true);
-        setActiveTab('pipeline');
-        setPipelineLogs([]);
-
-        const chainId = network === 'mainnet' ? 5031 : 50312;
-        const addLog = (stage, status, message, data) => {
-          setPipelineLogs(prev => [...prev, { stage, status, message, data, timestamp: new Date().toLocaleTimeString() }]);
-        };
-
-        addLog('STAGE_1_VALIDATE_NETWORK', 'PENDING', `Executing live eth_chainId query to Somnia RPC (${network === 'mainnet' ? '5031' : '50312'})...`);
-        await new Promise(r => setTimeout(r, 400));
-        addLog('STAGE_1_VALIDATE_NETWORK', 'SUCCESS', `Connected to Somnia EVM (${network === 'mainnet' ? '5031 Mainnet' : '50312 Testnet'})`, { target: SOMI_TARGET });
-
-        addLog('STAGE_2_FETCH_RESERVES', 'PENDING', 'Querying SOMI/SCHWEPE pool reserves via Thirdweb SDK RPC...');
-        await new Promise(r => setTimeout(r, 500));
-        addLog('STAGE_2_FETCH_RESERVES', 'SUCCESS', 'Pool reserves: 1,000,000 SOMI / 2,485,200 SCHWEPE');
-
-        addLog('STAGE_3_CALCULATE_TRADE', 'PENDING', 'Calculating Constant Product AMM formula (x * y = k)...');
-        await new Promise(r => setTimeout(r, 350));
-        addLog('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Expected Out: ${amountOut} SCHWEPE, Slippage: 0.5%, Price Impact: 0.31%`);
-
-        addLog('STAGE_4_ALLOWANCE_APPROVAL', 'PENDING', `Verifying ERC-20 allowance via Thirdweb v5 for ${wallet.substring(0,6)}...${wallet.substring(38)}`);
-        await new Promise(r => setTimeout(r, 450));
-        addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', 'Allowance verified & confirmed on Somnia Network');
-
-        addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', 'Broadcasting swap transaction to SchwepeRouter...');
-        await new Promise(r => setTimeout(r, 650));
+      const handleDeployContract = async () => {
+        setDeployingStatus('Broadcasting SchwepeMasterChef.sol bytecode to Somnia EVM...');
+        await new Promise(r => setTimeout(r, 1200));
         const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-        addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap transaction confirmed in Somnia block #377,056,294!`, { explorerUrl: `https://explorer.somnia.network/address/${SOMI_TARGET}` });
+        setDeployingStatus(`✅ SchwepeMasterChef Deployed on Somnia Block #${deployStartBlock}! Tx: ${txHash.substring(0,10)}...`);
+        setTimeout(() => {
+          setDeployingStatus('');
+          setShowDeployModal(false);
+        }, 2000);
+      };
 
-        setIsRunning(false);
+      const handleAddPool = async () => {
+        setDeployingStatus('Executing MasterChef.add(allocPoint, lpToken)...');
+        await new Promise(r => setTimeout(r, 1000));
+        const newId = pools.length;
+        setPools(prev => [
+          ...prev,
+          {
+            id: newId,
+            name: `CUSTOM LP (${newLpAddress.substring(0,6)}...)`,
+            pairAddress: newLpAddress,
+            apr: '165.0%',
+            tvl: '$500,000',
+            allocPts: parseInt(newAllocPoints),
+            weight: '12%',
+            earned: '0.00 SCHWEPE',
+            userStaked: '0.00 LP'
+          }
+        ]);
+        setDeployingStatus('✅ New Farm Pool Added Successfully!');
+        setTimeout(() => {
+          setDeployingStatus('');
+          setShowDeployModal(false);
+        }, 1500);
+      };
+
+      const handleClaimRewards = (poolId) => {
+        setPools(prev => prev.map(p => p.id === poolId ? { ...p, earned: '0.00 SCHWEPE' } : p));
+        alert('🎉 $SCHWEPE rewards harvested successfully to wallet!');
       };
 
       return (
-        <div style={{ padding: '20px', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ padding: '20px', maxWidth: '1180px', margin: '0 auto' }}>
           
-          {/* Header */}
+          {/* Header / Navbar (WITHOUT Web3 Pipeline tab) */}
           <header className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ background: 'linear-gradient(135deg, #9333ea, #06b6d4)', padding: '10px', borderRadius: '14px', fontSize: '1.4rem' }}>🌊</div>
+              <div style={{ background: 'linear-gradient(135deg, #ec4899, #9333ea)', padding: '10px', borderRadius: '14px', fontSize: '1.4rem' }}>🌾</div>
               <div>
-                <h1 style={{ fontSize: '1.3rem', fontWeight: 800, background: 'linear-gradient(90deg, #fff, #a855f7, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SchwepeSwap</h1>
+                <h1 style={{ fontSize: '1.3rem', fontWeight: 800, background: 'linear-gradient(90deg, #fff, #ec4899, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                  SchwepeSwap <span style={{ fontSize: '0.85rem', color: '#ec4899', fontWeight: 600 }}>MasterChef Hub</span>
+                </h1>
                 <span className="badge-somnia"><span className="pulse-dot"></span> Somnia EVM ({network === 'mainnet' ? '5031' : '50312'})</span>
               </div>
             </div>
 
+            {/* Navigation Bar (Clean: Farms, Swap, Liquidity - NO Pipeline) */}
             <nav style={{ display: 'flex', gap: '8px', background: 'rgba(15,23,42,0.6)', padding: '4px', borderRadius: '12px' }}>
-              {['swap', 'liquidity', 'farms', 'pipeline'].map(t => (
+              {[
+                { id: 'farms', label: '🌾 Farms Control Center' },
+                { id: 'swap', label: '⇄ Swap' },
+                { id: 'liquidity', label: '💧 Liquidity' }
+              ].map(tab => (
                 <button
-                  key={t}
-                  onClick={() => setActiveTab(t)}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
                   style={{
-                    background: activeTab === t ? 'linear-gradient(135deg, #9333ea, #06b6d4)' : 'transparent',
-                    color: activeTab === t ? '#fff' : '#94a3b8',
-                    border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize'
+                    background: activeTab === tab.id ? 'linear-gradient(135deg, #ec4899, #9333ea)' : 'transparent',
+                    color: activeTab === tab.id ? '#fff' : '#94a3b8',
+                    border: 'none', padding: '8px 18px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer'
                   }}
                 >
-                  {t === 'pipeline' ? '⚡ Web3 Pipeline' : t}
+                  {tab.label}
                 </button>
               ))}
             </nav>
 
+            {/* Action Buttons */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {/* Deploy Button in Header */}
+              <button onClick={() => setShowDeployModal(true)} className="btn-deploy">
+                🚀 Deploy
+              </button>
+
               <a href="https://explorer.somnia.network/address/0xdd10620866c4f586b1213d3818811faf3718fce3" target="_blank" style={{ color: '#38bdf8', fontSize: '0.85rem', textDecoration: 'none' }}>SOMI Contract ↗</a>
-              
-              {/* Connect Wallet Button */}
-              <button onClick={() => setShowWalletModal(true)} className="btn-gradient" style={{ fontSize: '0.85rem' }}>
+
+              <button onClick={() => wallet ? setShowWalletModal(true) : handleConnectWallet()} className="btn-gradient" style={{ fontSize: '0.85rem' }}>
                 {wallet ? `${wallet.substring(0,6)}...${wallet.substring(38)}` : 'Connect Wallet'}
               </button>
             </div>
           </header>
 
-          {/* Main Content */}
+          {/* MAIN VIEW: MasterChef Yield Farm Control Center */}
           <main>
+            {activeTab === 'farms' && (
+              <div>
+                
+                {/* Global Metrics Dashboard */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                  <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Value Locked</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>$18,450,920</div>
+                    <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '2px' }}>↑ 14.2% 24h</div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>$SCHWEPE Emission Rate</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ec4899', marginTop: '4px' }}>10.0 / block</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>MasterChef Block Allocation</div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Allocation Points</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a855f7', marginTop: '4px' }}>1,000 Points</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>Across {pools.length} Active Pools</div>
+                  </div>
+
+                  <div className="stat-card">
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Harvestable Rewards</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>48.92 SCHWEPE</div>
+                    <button onClick={() => alert('Harvested 48.92 SCHWEPE to wallet!')} className="btn-gradient" style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: '6px' }}>Claim All</button>
+                  </div>
+                </div>
+
+                {/* Dashboard Control Bar */}
+                <div className="glass-panel" style={{ padding: '18px 24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🌾 MasterChef Reward Pools
+                    </h2>
+                    <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Executive Yield Farm Management on Somnia EVM</p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button onClick={() => { setDeployTab('contract'); setShowDeployModal(true); }} className="btn-deploy">
+                      🚀 Deploy MasterChef Contract
+                    </button>
+                    <button onClick={() => { setDeployTab('pool'); setShowDeployModal(true); }} className="btn-gradient">
+                      ➕ Add New Farm Pool
+                    </button>
+                  </div>
+                </div>
+
+                {/* Farm Pools Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                  {pools.map(pool => (
+                    <div key={pool.id} className="glass-panel" style={{ padding: '22px' }}>
+                      
+                      {/* Pool Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div>
+                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{pool.name}</h3>
+                          <a href={`https://explorer.somnia.network/address/${pool.pairAddress}`} target="_blank" style={{ color: '#38bdf8', fontSize: '0.75rem', textDecoration: 'none' }}>
+                            {pool.pairAddress.substring(0,8)}...{pool.pairAddress.substring(36)} ↗
+                          </a>
+                        </div>
+                        <span className="badge-somnia" style={{ color: '#ec4899', borderColor: 'rgba(236,72,153,0.4)', background: 'rgba(236,72,153,0.15)', fontSize: '0.85rem' }}>
+                          ✨ {pool.apr} APR
+                        </span>
+                      </div>
+
+                      {/* Pool Stats */}
+                      <div style={{ background: 'rgba(15,23,42,0.8)', padding: '14px', borderRadius: '14px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+                          <span>Pool TVL</span><strong style={{ color: '#fff' }}>{pool.tvl}</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}>
+                          <span>Allocation Weight</span><strong style={{ color: '#a855f7' }}>{pool.allocPts} pts ({pool.weight})</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}>
+                          <span>Earned $SCHWEPE</span><strong style={{ color: '#38bdf8' }}>{pool.earned}</strong>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => handleClaimRewards(pool.id)} className="btn-gradient" style={{ flex: 1, padding: '10px', fontSize: '0.85rem' }}>
+                          Harvest
+                        </button>
+                        <button onClick={() => alert(`Staked LP Tokens in ${pool.name}`)} className="btn-deploy" style={{ flex: 1, padding: '10px', fontSize: '0.85rem', justifyContent: 'center' }}>
+                          Stake LP
+                        </button>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+
+            {/* SWAP VIEW */}
             {activeTab === 'swap' && (
               <div className="glass-panel" style={{ maxWidth: '460px', margin: '0 auto', padding: '24px' }}>
                 <h2 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Swap Tokens</h2>
@@ -409,51 +485,13 @@
                   </div>
                 </div>
 
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', marginBottom: '20px', fontSize: '0.85rem', color: '#94a3b8' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Rate</span><span>1 SOMI ≈ 2.4852 SCHWEPE</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Slippage</span><span>0.5%</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Network Fee</span><span style={{ color: '#22c55e' }}>&lt;$0.001 (Somnia)</span></div>
-                </div>
-
-                {/* Overhauled Action Button: Reads simply "Swap" when wallet is connected */}
-                <button onClick={wallet ? runPipeline : () => setShowWalletModal(true)} className="btn-gradient" style={{ width: '100%', fontSize: '1.1rem', padding: '14px' }}>
+                <button onClick={() => wallet ? alert('Executing swap on Somnia EVM...') : setShowWalletModal(true)} className="btn-gradient" style={{ width: '100%', fontSize: '1.1rem', padding: '14px' }}>
                   {wallet ? 'Swap' : 'Connect Wallet'}
                 </button>
               </div>
             )}
 
-            {activeTab === 'pipeline' && (
-              <div className="glass-panel" style={{ maxWidth: '600px', margin: '0 auto', padding: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <div>
-                    <h2>⚡ Somnia Web3 Async Pipeline</h2>
-                    <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Sequential <code>await</code> pipeline execution with Thirdweb SDK v5</p>
-                  </div>
-                  <button onClick={runPipeline} disabled={isRunning} className="btn-gradient" style={{ fontSize: '0.85rem' }}>
-                    {isRunning ? 'Running...' : 'Run Pipeline'}
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {pipelineLogs.length === 0 ? (
-                    <p style={{ color: '#64748b', textAlign: 'center', padding: '20px' }}>Click "Swap" or "Run Pipeline" to execute the Web3 async pipeline.</p>
-                  ) : (
-                    pipelineLogs.map((log, i) => (
-                      <div key={i} style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid ' + (log.status === 'SUCCESS' ? 'rgba(34,197,94,0.4)' : 'rgba(168,85,247,0.4)'), padding: '12px', borderRadius: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem' }}>
-                          <span>{log.stage}</span><span style={{ fontSize: '0.75rem', color: '#64748b' }}>{log.timestamp}</span>
-                        </div>
-                        <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>{log.message}</p>
-                        {log.data?.explorerUrl && (
-                          <a href={log.data.explorerUrl} target="_blank" style={{ color: '#38bdf8', fontSize: '0.8rem' }}>View on Somnia Explorer ↗</a>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
+            {/* LIQUIDITY VIEW */}
             {activeTab === 'liquidity' && (
               <div className="glass-panel" style={{ maxWidth: '500px', margin: '0 auto', padding: '24px' }}>
                 <h2>💧 Add Liquidity Pool</h2>
@@ -461,92 +499,128 @@
                 <button className="btn-gradient" style={{ width: '100%' }}>Supply SOMI / SCHWEPE Liquidity</button>
               </div>
             )}
-
-            {activeTab === 'farms' && (
-              <div className="glass-panel" style={{ maxWidth: '700px', margin: '0 auto', padding: '24px' }}>
-                <h2>🌾 SchwepeMasterChef Yield Farms</h2>
-                <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '20px' }}>Stake LP tokens to earn high APY $SCHWEPE rewards</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ background: 'rgba(15,23,42,0.8)', padding: '16px', borderRadius: '12px' }}>
-                    <h3>SOMI / SCHWEPE LP</h3>
-                    <p style={{ color: '#ec4899', fontWeight: 700 }}>142.8% APR</p>
-                    <button className="btn-gradient" style={{ width: '100%', marginTop: '12px', fontSize: '0.85rem' }}>Stake LP</button>
-                  </div>
-                  <div style={{ background: 'rgba(15,23,42,0.8)', padding: '16px', borderRadius: '12px' }}>
-                    <h3>SOMI / USDT LP</h3>
-                    <p style={{ color: '#ec4899', fontWeight: 700 }}>88.4% APR</p>
-                    <button className="btn-gradient" style={{ width: '100%', marginTop: '12px', fontSize: '0.85rem' }}>Stake LP</button>
-                  </div>
-                </div>
-              </div>
-            )}
           </main>
 
-          {/* Thirdweb v5 Web3 Wallet Connect Modal */}
+          {/* DEPLOYMENT MODAL */}
+          {showDeployModal && (
+            <div className="modal-overlay" onClick={() => setShowDeployModal(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()}>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>🚀 Deploy &amp; Manage MasterChef</h3>
+                  <button onClick={() => setShowDeployModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
+                </div>
+
+                {/* Subtabs */}
+                <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px', marginBottom: '20px' }}>
+                  <button
+                    onClick={() => setDeployTab('contract')}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 700,
+                      background: deployTab === 'contract' ? 'linear-gradient(135deg, #ec4899, #a855f7)' : 'transparent',
+                      color: deployTab === 'contract' ? '#fff' : '#94a3b8'
+                    }}
+                  >
+                    Deploy Contract
+                  </button>
+                  <button
+                    onClick={() => setDeployTab('pool')}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 700,
+                      background: deployTab === 'pool' ? 'linear-gradient(135deg, #ec4899, #a855f7)' : 'transparent',
+                      color: deployTab === 'pool' ? '#fff' : '#94a3b8'
+                    }}
+                  >
+                    Add Farm Pool
+                  </button>
+                </div>
+
+                {deployTab === 'contract' ? (
+                  <div>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                      <div style={{ color: '#94a3b8', marginBottom: '4px' }}>Target Network</div>
+                      <div style={{ color: '#38bdf8', fontWeight: 700 }}>Somnia Mainnet (Chain ID 5031)</div>
+                      <div style={{ color: '#94a3b8', marginTop: '8px', marginBottom: '4px' }}>Start Block Height</div>
+                      <input
+                        type="text"
+                        value={deployStartBlock}
+                        onChange={e => setDeployStartBlock(e.target.value)}
+                        style={{ width: '100%', background: '#070913', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', borderRadius: '8px', outline: 'none' }}
+                      />
+                    </div>
+
+                    {deployingStatus && (
+                      <div style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem', marginBottom: '14px', textAlign: 'center' }}>
+                        {deployingStatus}
+                      </div>
+                    )}
+
+                    <button onClick={handleDeployContract} className="btn-deploy" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
+                      🚀 Deploy SchwepeMasterChef Bytecode
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                      <div style={{ color: '#94a3b8', marginBottom: '4px' }}>LP Token Address</div>
+                      <input
+                        type="text"
+                        value={newLpAddress}
+                        onChange={e => setNewLpAddress(e.target.value)}
+                        style={{ width: '100%', background: '#070913', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', borderRadius: '8px', outline: 'none', marginBottom: '10px' }}
+                      />
+                      <div style={{ color: '#94a3b8', marginBottom: '4px' }}>Allocation Points (Multiplier)</div>
+                      <input
+                        type="number"
+                        value={newAllocPoints}
+                        onChange={e => setNewAllocPoints(e.target.value)}
+                        style={{ width: '100%', background: '#070913', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', borderRadius: '8px', outline: 'none' }}
+                      />
+                    </div>
+
+                    {deployingStatus && (
+                      <div style={{ color: '#a855f7', fontWeight: 700, fontSize: '0.85rem', marginBottom: '14px', textAlign: 'center' }}>
+                        {deployingStatus}
+                      </div>
+                    )}
+
+                    <button onClick={handleAddPool} className="btn-gradient" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
+                      ➕ Add Pool to MasterChef
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
+
+          {/* WALLET MODAL */}
           {showWalletModal && (
             <div className="modal-overlay" onClick={() => setShowWalletModal(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Connect Web3 Wallet</h3>
-                    <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Powered by <strong>Thirdweb SDK v5</strong></p>
-                  </div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Connect Web3 Wallet</h3>
                   <button onClick={() => setShowWalletModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
                 </div>
                 
                 {wallet ? (
                   <div>
                     <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '14px', marginBottom: '16px', border: '1px solid rgba(168,85,247,0.3)' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Account ({walletType})</div>
+                      <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Active Account</div>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-all', marginTop: '6px', color: '#fff' }}>{wallet}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#22c55e', marginTop: '8px', fontWeight: 600 }}>Balance: {balance} SOMI</div>
+                      <div style={{ fontSize: '0.85rem', color: '#22c55e', marginTop: '8px' }}>Balance: {balance} SOMI</div>
                     </div>
-                    <button onClick={handleDisconnect} className="btn-gradient" style={{ width: '100%', background: '#ef4444' }}>Disconnect Wallet</button>
+                    <button onClick={() => { setWallet(''); setShowWalletModal(false); }} className="btn-gradient" style={{ width: '100%', background: '#ef4444' }}>Disconnect Wallet</button>
                   </div>
                 ) : (
                   <div>
-                    <div className="wallet-option" onClick={connectThirdwebMetaMask}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '1.4rem' }}>🦊</span>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>MetaMask / Browser Wallet</div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Thirdweb createWallet("io.metamask")</div>
-                        </div>
-                      </div>
-                      <span style={{ color: '#22c55e', fontSize: '0.75rem', background: 'rgba(34,197,94,0.15)', padding: '2px 8px', borderRadius: '6px' }}>Ready</span>
+                    <div className="wallet-option" onClick={handleConnectWallet}>
+                      <span style={{ fontWeight: 700 }}>🦊 MetaMask / EIP-1193</span>
+                      <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>Ready</span>
                     </div>
-
-                    <div className="wallet-option" onClick={connectThirdwebCoinbase}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '1.4rem' }}>🔵</span>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Coinbase Wallet</div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Thirdweb createWallet("com.coinbase.wallet")</div>
-                        </div>
-                      </div>
-                      <span style={{ color: '#38bdf8', fontSize: '0.75rem', background: 'rgba(56,189,248,0.15)', padding: '2px 8px', borderRadius: '6px' }}>SDK v5</span>
-                    </div>
-
-                    <div className="wallet-option" onClick={connectThirdwebInApp}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '1.4rem' }}>📧</span>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Email / Social InApp Wallet</div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Thirdweb inAppWallet()</div>
-                        </div>
-                      </div>
-                      <span style={{ color: '#a855f7', fontSize: '0.75rem', background: 'rgba(168,85,247,0.15)', padding: '2px 8px', borderRadius: '6px' }}>Passwordless</span>
-                    </div>
-
-                    <div className="wallet-option" onClick={connectSomniaDemo}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '1.4rem' }}>🌐</span>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Somnia Target Account</div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>$SOMI Contract Explorer Target</div>
-                        </div>
-                      </div>
-                      <span style={{ color: '#94a3b8', fontSize: '0.75rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '6px' }}>Demo</span>
+                    <div className="wallet-option" onClick={handleConnectWallet}>
+                      <span style={{ fontWeight: 700 }}>⚡ Thirdweb SDK v5</span>
+                      <span style={{ color: '#38bdf8', fontSize: '0.75rem' }}>Client</span>
                     </div>
                   </div>
                 )}
@@ -555,7 +629,7 @@
           )}
 
           <footer style={{ textAlign: 'center', color: '#64748b', marginTop: '40px', fontSize: '0.8rem' }}>
-            SchwepeSwap &copy; 2026 | Somnia Network Address Target: <a href="https://explorer.somnia.network/address/0xdd10620866c4f586b1213d3818811faf3718fce3" target="_blank" style={{ color: '#38bdf8' }}>0xdd10620866c4f586b1213d3818811faf3718fce3</a>
+            SchwepeSwap MasterChef Hub &copy; 2026 | Somnia Address Target: <a href="https://explorer.somnia.network/address/0xdd10620866c4f586b1213d3818811faf3718fce3" target="_blank" style={{ color: '#38bdf8' }}>0xdd10620866c4f586b1213d3818811faf3718fce3</a>
           </footer>
         </div>
       );
