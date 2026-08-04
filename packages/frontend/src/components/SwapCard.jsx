@@ -135,8 +135,8 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
       </div>
 
       {/* Swap Action Button */}
-      <button onClick={handleSwapClick} className="btn-gradient" style={{ width: '100%', fontSize: '1rem' }}>
-        {walletAddress ? 'Execute Swap via Web3 Pipeline' : 'Connect Wallet to Swap'}
+      <button onClick={handleSwapClick} className="btn-gradient" style={{ width: '100%', fontSize: '1.1rem', padding: '14px' }}>
+        {walletAddress ? 'Swap' : 'Connect Wallet'}
       </button>
 
     </div>
