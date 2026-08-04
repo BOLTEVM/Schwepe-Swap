@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SchwepeSwap 🌊⚡ | MasterChef Yield Farm Control Center</title>
+  <title>SchwepeSwap 🌊⚡ | Next-Gen Somnia EVM MasterChef Hub</title>
   <link rel="icon" type="image/svg+xml" href="https://explorer.somnia.network/assets/favicon/favicon-32x32.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Source+Code+Pro:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Source+Code+Pro:wght@400;600;700&display=swap" rel="stylesheet" />
   
   <!-- React 18 & ReactDOM CDN -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -17,13 +17,15 @@
 
   <style>
     :root {
-      --bg-dark: #070913;
-      --bg-card: rgba(15, 23, 42, 0.85);
+      --bg-dark: #05070e;
+      --bg-card: rgba(13, 19, 36, 0.85);
+      --bg-card-hover: rgba(22, 30, 56, 0.95);
       --border-color: rgba(255, 255, 255, 0.1);
-      --border-glow: rgba(168, 85, 247, 0.4);
+      --border-glow: rgba(168, 85, 247, 0.5);
       --primary-purple: #9333ea;
       --primary-cyan: #06b6d4;
       --accent-pink: #ec4899;
+      --neon-emerald: #22c55e;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
     }
@@ -33,28 +35,29 @@
     body {
       background-color: var(--bg-dark);
       background-image: 
-        radial-gradient(at 10% 20%, rgba(147, 51, 234, 0.22) 0px, transparent 50%),
-        radial-gradient(at 90% 80%, rgba(6, 182, 212, 0.22) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.25) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.25) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(236, 72, 153, 0.18) 0px, transparent 50%);
       background-attachment: fixed;
       color: var(--text-main);
       font-family: 'Inter', sans-serif;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     .glass-panel {
       background: var(--bg-card);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-color);
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+      border-radius: 24px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .glass-panel:hover {
       border-color: var(--border-glow);
-      box-shadow: 0 24px 48px rgba(147, 51, 234, 0.25);
+      box-shadow: 0 25px 50px rgba(147, 51, 234, 0.3);
     }
 
     .btn-gradient {
@@ -62,19 +65,20 @@
       color: #ffffff;
       font-weight: 700;
       border: none;
-      border-radius: 12px;
-      padding: 12px 20px;
+      border-radius: 14px;
+      padding: 12px 22px;
       cursor: pointer;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      box-shadow: 0 4px 20px rgba(147, 51, 234, 0.4);
     }
 
     .btn-gradient:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(147, 51, 234, 0.5);
+      box-shadow: 0 8px 28px rgba(147, 51, 234, 0.6);
     }
 
     .btn-deploy {
@@ -82,47 +86,95 @@
       color: #ffffff;
       font-weight: 800;
       border: none;
-      border-radius: 12px;
-      padding: 10px 18px;
+      border-radius: 14px;
+      padding: 10px 20px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.4);
+      box-shadow: 0 4px 20px rgba(236, 72, 153, 0.45);
       transition: all 0.2s ease;
     }
 
     .btn-deploy:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(236, 72, 153, 0.6);
+      box-shadow: 0 8px 30px rgba(236, 72, 153, 0.65);
     }
 
     .badge-somnia {
-      background: rgba(6, 182, 212, 0.15);
+      background: rgba(6, 182, 212, 0.12);
       border: 1px solid rgba(6, 182, 212, 0.4);
       color: #38bdf8;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 9999px;
       font-size: 0.75rem;
-      font-weight: 600;
+      font-weight: 700;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      letter-spacing: 0.3px;
     }
 
     .pulse-dot {
       width: 8px;
       height: 8px;
-      background-color: #22c55e;
+      background-color: var(--neon-emerald);
       border-radius: 50%;
-      box-shadow: 0 0 8px #22c55e;
+      box-shadow: 0 0 10px var(--neon-emerald);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    .stat-card {
+      background: rgba(13, 19, 36, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(168, 85, 247, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .banner-container {
+      background: linear-gradient(135deg, rgba(147, 51, 234, 0.25) 0%, rgba(6, 182, 212, 0.25) 100%);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand-img {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 18px;
+      border: 2px solid rgba(168, 85, 247, 0.6);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      transition: transform 0.3s ease;
+    }
+
+    .brand-img:hover {
+      transform: scale(1.05) rotate(2deg);
     }
 
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(10px);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -130,50 +182,20 @@
     }
 
     .modal-content {
-      background: #0f172a;
+      background: #0b1120;
       border: 1px solid rgba(168, 85, 247, 0.4);
-      border-radius: 20px;
-      padding: 26px;
+      border-radius: 24px;
+      padding: 28px;
       width: 92%;
-      max-width: 540px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
-    }
-
-    .stat-card {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      padding: 18px;
-      transition: all 0.2s ease;
-    }
-
-    .stat-card:hover {
-      border-color: rgba(168, 85, 247, 0.4);
-    }
-
-    .wallet-option {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .wallet-option:hover {
-      background: rgba(147, 51, 234, 0.25);
-      border-color: rgba(147, 51, 234, 0.6);
+      max-width: 560px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
     }
 
     .token-select {
-      background: #0f172a;
+      background: #0b1120;
       color: #fff;
       border: 1px solid rgba(168, 85, 247, 0.4);
-      padding: 8px 12px;
+      padding: 8px 14px;
       border-radius: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -200,14 +222,21 @@
     const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
     const SCHWEPE_TARGET = '0x4444444444444444444444444444444444444444';
 
-    const TOKENS = [
-      { symbol: 'SOMI', name: 'Somnia Token', address: SOMI_TARGET, isNative: true, decimals: 18 },
-      { symbol: 'WSOMI', name: 'Wrapped SOMI', address: WSOMI_TARGET, isNative: false, decimals: 18 },
-      { symbol: 'SALP', name: 'Somnex AMM LP', address: SOMNEX_LP_TARGET, isNative: false, decimals: 18 },
-      { symbol: 'SCHWEPE', name: 'Schwepe Token', address: SCHWEPE_TARGET, isNative: false, decimals: 18 }
+    const BRAND_MEMES = [
+      { id: 'neo', title: 'Neoschwepe Matrix', image: '/schwemes/Neoschwepe.jpg', subtitle: 'Cybernetic liquidity sub-second finality' },
+      { id: 'trade', title: 'Trade Offer: 188.5% APR', image: '/schwemes/Tradeoffer.jpg', subtitle: 'Stake SOMI/WSOMI LP, receive $SCHWEPE' },
+      { id: 'bustdown', title: 'Bustdown Cyber-Tonic', image: '/schwemes/bustdownschwepe.jpg', subtitle: 'Constant product AMM with TWAP accumulators' },
+      { id: 'forever', title: 'Forever A Schwepe', image: '/schwemes/foreveraschwepe.jpg', subtitle: '10.0 SCHWEPE / block yield emissions' }
     ];
 
-    // Robust 100% Accurate BigInt Wei to Ether formatting function (No float mixing error)
+    const TOKENS = [
+      { symbol: 'SOMI', name: 'Somnia Token', address: SOMI_TARGET, isNative: true },
+      { symbol: 'WSOMI', name: 'Wrapped SOMI', address: WSOMI_TARGET, isNative: false },
+      { symbol: 'SALP', name: 'Somnex AMM LP', address: SOMNEX_LP_TARGET, isNative: false },
+      { symbol: 'SCHWEPE', name: 'Schwepe Token', address: SCHWEPE_TARGET, isNative: false }
+    ];
+
+    // Robust BigInt Wei to Ether formatting function (Zero float mixing error)
     const formatWeiToEther = (weiHexOrString) => {
       if (!weiHexOrString || weiHexOrString === '0x' || weiHexOrString === '0x0') return '0.0000';
       try {
@@ -229,7 +258,6 @@
       const [wallet, setWallet] = useState('');
       const [walletType, setWalletType] = useState('');
       
-      // Token Balances
       const [tokenInBalance, setTokenInBalance] = useState('0.0000');
       const [tokenOutBalance, setTokenOutBalance] = useState('0.0000');
       const [tokenIn, setTokenIn] = useState(TOKENS[0]);
@@ -239,7 +267,8 @@
       const [showDeployModal, setShowDeployModal] = useState(false);
       const [showPipelineModal, setShowPipelineModal] = useState(false);
       const [deployTab, setDeployTab] = useState('contract');
-      
+      const [bannerIndex, setBannerIndex] = useState(0);
+
       const [amountIn, setAmountIn] = useState('100');
       const [dynamicAmountOut, setDynamicAmountOut] = useState('247.7497');
       const [priceImpact, setPriceImpact] = useState('0.31');
@@ -247,7 +276,15 @@
       const [pipelineLogs, setPipelineLogs] = useState([]);
       const [isRunning, setIsRunning] = useState(false);
 
-      // Dynamic AMM Constant Product Quote Calculation (x * y = k)
+      // Auto-slide Brand Banner
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setBannerIndex(prev => (prev + 1) % BRAND_MEMES.length);
+        }, 5000);
+        return () => clearInterval(timer);
+      }, []);
+
+      // Dynamic AMM Constant Product Quote Calculation
       useEffect(() => {
         const val = parseFloat(amountIn || '0');
         if (val <= 0) {
@@ -266,7 +303,7 @@
         setPriceImpact(impact.toFixed(2));
       }, [amountIn, tokenIn, tokenOut]);
 
-      // Accurate Balance Query (eth_getBalance for native SOMI, eth_call balanceOf for ERC20)
+      // Accurate Balance Query
       useEffect(() => {
         if (wallet) {
           fetchTokenBalances(wallet);
@@ -279,22 +316,16 @@
       const fetchTokenBalances = async (address) => {
         const rpcUrl = network === 'mainnet' ? 'https://api.infra.mainnet.somnia.network/' : 'https://dream-rpc.somnia.network/';
 
-        // 1. Fetch Token In Balance
         if (tokenIn.isNative) {
-          const bal = await fetchNativeBalanceRpc(address, rpcUrl);
-          setTokenInBalance(bal);
+          setTokenInBalance(await fetchNativeBalanceRpc(address, rpcUrl));
         } else {
-          const bal = await fetchErc20BalanceRpc(address, tokenIn.address, rpcUrl);
-          setTokenInBalance(bal);
+          setTokenInBalance(await fetchErc20BalanceRpc(address, tokenIn.address, rpcUrl));
         }
 
-        // 2. Fetch Token Out Balance
         if (tokenOut.isNative) {
-          const bal = await fetchNativeBalanceRpc(address, rpcUrl);
-          setTokenOutBalance(bal);
+          setTokenOutBalance(await fetchNativeBalanceRpc(address, rpcUrl));
         } else {
-          const bal = await fetchErc20BalanceRpc(address, tokenOut.address, rpcUrl);
-          setTokenOutBalance(bal);
+          setTokenOutBalance(await fetchErc20BalanceRpc(address, tokenOut.address, rpcUrl));
         }
       };
 
@@ -310,18 +341,15 @@
             body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] })
           });
           const json = await res.json();
-          if (json.result) {
-            return formatWeiToEther(json.result);
-          }
+          if (json.result) return formatWeiToEther(json.result);
         } catch (e) {
-          console.error('Fetch Native Balance Error:', e);
+          console.error(e);
         }
         return '0.0000';
       };
 
       const fetchErc20BalanceRpc = async (walletAddress, tokenAddress, rpcUrl) => {
         try {
-          // balanceOf selector 0x70a08231 + padded address
           const callData = '0x70a08231' + walletAddress.substring(2).padStart(64, '0');
           if (window.ethereum) {
             const raw = await window.ethereum.request({
@@ -339,16 +367,14 @@
             })
           });
           const json = await res.json();
-          if (json.result && json.result !== '0x') {
-            return formatWeiToEther(json.result);
-          }
+          if (json.result && json.result !== '0x') return formatWeiToEther(json.result);
         } catch (e) {
-          console.error('Fetch ERC20 Balance Error:', e);
+          console.error(e);
         }
         return '0.0000';
       };
 
-      // Check for pre-existing wallet connection
+      // Check pre-existing wallet connection
       useEffect(() => {
         if (window.ethereum) {
           window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
@@ -372,7 +398,6 @@
         }
       }, []);
 
-      // Connect Wallet Handler
       const handleConnectWallet = async () => {
         if (window.ethereum) {
           try {
@@ -391,7 +416,6 @@
         }
       };
 
-      // Live 5-Stage Web3 Execution Pipeline Runner for Swap
       const runSwapPipeline = async () => {
         if (!wallet) {
           setShowWalletModal(true);
@@ -406,27 +430,22 @@
           setPipelineLogs(prev => [...prev, { stage, status, message, data, timestamp: new Date().toLocaleTimeString() }]);
         };
 
-        // STAGE 1: Network Validation
         addLog('STAGE_1_VALIDATE_NETWORK', 'PENDING', `Executing live eth_chainId query to Somnia RPC (5031)...`);
         await new Promise(r => setTimeout(r, 450));
         addLog('STAGE_1_VALIDATE_NETWORK', 'SUCCESS', `Connected to Somnia EVM (${network === 'mainnet' ? '5031 Mainnet' : '50312 Testnet'})`, { target: SOMI_TARGET });
 
-        // STAGE 2: Query Reserves
         addLog('STAGE_2_FETCH_RESERVES', 'PENDING', `Querying SOMI/WSOMI pool reserves via Somnex LP ${SOMNEX_LP_TARGET}...`);
         await new Promise(r => setTimeout(r, 550));
         addLog('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-Chain Reserves Query Confirmed: 1,000,000 ${tokenIn.symbol} / 2,485,200 ${tokenOut.symbol}`);
 
-        // STAGE 3: Calculate AMM Trade Output
         addLog('STAGE_3_CALCULATE_TRADE', 'PENDING', `Computing constant product AMM formula for ${amountIn} ${tokenIn.symbol}...`);
         await new Promise(r => setTimeout(r, 400));
         addLog('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Expected Out: ${dynamicAmountOut} ${tokenOut.symbol}, Slippage: 0.5%, Price Impact: ${priceImpact}%`);
 
-        // STAGE 4: Allowance Check (0xdd62ed3e selector)
         addLog('STAGE_4_ALLOWANCE_APPROVAL', 'PENDING', `Querying ERC-20 allowance(owner, spender) via eth_call...`);
         await new Promise(r => setTimeout(r, 500));
         addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `On-Chain ERC-20 allowance verified for SchwepeRouter`);
 
-        // STAGE 5: Execute Swap Transaction
         addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Submitting swap call & querying live block header on Somnia EVM...`);
         await new Promise(r => setTimeout(r, 750));
         const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
@@ -436,30 +455,32 @@
       };
 
       const [pools, setPools] = useState([
-        { id: 0, name: 'SOMI / WSOMI LP', pairAddress: SOMNEX_LP_TARGET, apr: '188.5%', tvl: '$4,580,000', allocPts: 400, weight: '40%', earned: '0.00 SCHWEPE' },
-        { id: 1, name: 'SOMI / SCHWEPE LP', pairAddress: '0x1111111111111111111111111111111111111111', apr: '142.8%', tvl: '$1,248,500', allocPts: 350, weight: '35%', earned: '0.00 SCHWEPE' },
-        { id: 2, name: 'SOMI / USDT LP', pairAddress: '0x2222222222222222222222222222222222222222', apr: '88.4%', tvl: '$3,890,200', allocPts: 150, weight: '15%', earned: '0.00 SCHWEPE' },
-        { id: 3, name: 'SCHWEPE / USDC LP', pairAddress: '0x3333333333333333333333333333333333333333', apr: '112.5%', tvl: '$890,100', allocPts: 100, weight: '10%', earned: '0.00 SCHWEPE' }
+        { id: 0, name: 'SOMI / WSOMI LP', pairAddress: SOMNEX_LP_TARGET, apr: '188.5%', tvl: '$4,580,000', allocPts: 400, weight: '40%', memeImg: '/schwemes/Tradeoffer.jpg' },
+        { id: 1, name: 'SOMI / SCHWEPE LP', pairAddress: '0x1111111111111111111111111111111111111111', apr: '142.8%', tvl: '$1,248,500', allocPts: 350, weight: '35%', memeImg: '/schwemes/Neoschwepe.jpg' },
+        { id: 2, name: 'SOMI / USDT LP', pairAddress: '0x2222222222222222222222222222222222222222', apr: '88.4%', tvl: '$3,890,200', allocPts: 150, weight: '15%', memeImg: '/schwemes/bustdownschwepe.jpg' },
+        { id: 3, name: 'SCHWEPE / USDC LP', pairAddress: '0x3333333333333333333333333333333333333333', apr: '112.5%', tvl: '$890,100', allocPts: 100, weight: '10%', memeImg: '/schwemes/foreveraschwepe.jpg' }
       ]);
 
+      const currentMeme = BRAND_MEMES[bannerIndex];
+
       return (
-        <div style={{ padding: '20px', maxWidth: '1180px', margin: '0 auto' }}>
+        <div style={{ padding: '24px', maxWidth: '1220px', margin: '0 auto' }}>
           
-          {/* Header / Navbar */}
-          <header className="glass-panel" style={{ padding: '16px 24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ background: 'linear-gradient(135deg, #ec4899, #9333ea)', padding: '10px', borderRadius: '14px', fontSize: '1.4rem' }}>🌾</div>
+          {/* Refined Header */}
+          <header className="glass-panel" style={{ padding: '18px 28px', marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #ec4899, #9333ea)', padding: '12px', borderRadius: '16px', fontSize: '1.5rem', boxShadow: '0 0 20px rgba(236,72,153,0.5)' }}>🌊</div>
               <div>
-                <h1 style={{ fontSize: '1.3rem', fontWeight: 800, background: 'linear-gradient(90deg, #fff, #ec4899, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  SchwepeSwap <span style={{ fontSize: '0.85rem', color: '#ec4899', fontWeight: 600 }}>MasterChef Hub</span>
+                <h1 style={{ fontSize: '1.4rem', fontWeight: 900, background: 'linear-gradient(90deg, #fff, #ec4899, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' }}>
+                  SchwepeSwap <span style={{ fontSize: '0.85rem', color: '#ec4899', fontWeight: 700, letterSpacing: '0px' }}>MasterChef Hub</span>
                 </h1>
-                <span className="badge-somnia"><span className="pulse-dot"></span> Somnia EVM ({network === 'mainnet' ? '5031' : '50312'})</span>
+                <span className="badge-somnia"><span className="pulse-dot"></span> ⚡ Somnia EVM ({network === 'mainnet' ? '5031' : '50312'}) | &lt;12ms Finality</span>
               </div>
             </div>
 
-            <nav style={{ display: 'flex', gap: '8px', background: 'rgba(15,23,42,0.6)', padding: '4px', borderRadius: '12px' }}>
+            <nav style={{ display: 'flex', gap: '8px', background: 'rgba(11,17,32,0.7)', padding: '5px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
               {[
-                { id: 'farms', label: '🌾 Farms Control Center' },
+                { id: 'farms', label: '🌾 MasterChef Hub' },
                 { id: 'swap', label: '⇄ Swap' },
                 { id: 'liquidity', label: '💧 Liquidity' }
               ].map(tab => (
@@ -469,7 +490,7 @@
                   style={{
                     background: activeTab === tab.id ? 'linear-gradient(135deg, #ec4899, #9333ea)' : 'transparent',
                     color: activeTab === tab.id ? '#fff' : '#94a3b8',
-                    border: 'none', padding: '8px 18px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer'
+                    border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s ease'
                   }}
                 >
                   {tab.label}
@@ -477,11 +498,11 @@
               ))}
             </nav>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <button onClick={() => setShowDeployModal(true)} className="btn-deploy">
                 🚀 Deploy
               </button>
-              <a href="https://explorer.somnia.network/address/0xdd10620866c4f586b1213d3818811faf3718fce3" target="_blank" style={{ color: '#38bdf8', fontSize: '0.85rem', textDecoration: 'none' }}>SOMI Contract ↗</a>
+              <a href="https://explorer.somnia.network/address/0xdd10620866c4f586b1213d3818811faf3718fce3" target="_blank" style={{ color: '#38bdf8', fontSize: '0.85rem', textDecoration: 'none', fontWeight: 600 }}>SOMI Contract ↗</a>
               <button onClick={() => wallet ? setShowWalletModal(true) : handleConnectWallet()} className="btn-gradient" style={{ fontSize: '0.85rem' }}>
                 {wallet ? `${wallet.substring(0,6)}...${wallet.substring(38)}` : 'Connect Wallet'}
               </button>
@@ -489,39 +510,71 @@
           </header>
 
           <main>
-            {/* FARMS CONTROL CENTER */}
+            {/* FARMS CONTROL CENTER & SCHWEPE BRAND LORE CAROUSEL */}
             {activeTab === 'farms' && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                
+                {/* Brand Lore Banner Carousel */}
+                <div className="banner-container">
+                  <div style={{ flex: 1, minWidth: '280px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(236,72,153,0.2)', border: '1px solid rgba(236,72,153,0.5)', color: '#ec4899', padding: '4px 10px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 800, marginBottom: '10px' }}>
+                      🔥 SCHWEPE BRAND LORE #{bannerIndex + 1}
+                    </div>
+                    <h2 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '6px', color: '#fff' }}>{currentMeme.title}</h2>
+                    <p style={{ color: '#cbd5e1', fontSize: '0.95rem', maxWidth: '520px' }}>{currentMeme.subtitle}</p>
+                    
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '16px' }}>
+                      {BRAND_MEMES.map((m, idx) => (
+                        <div
+                          key={m.id}
+                          onClick={() => setBannerIndex(idx)}
+                          style={{
+                            width: idx === bannerIndex ? '28px' : '8px',
+                            height: '8px',
+                            borderRadius: '9999px',
+                            background: idx === bannerIndex ? '#ec4899' : 'rgba(255,255,255,0.2)',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <img src={currentMeme.image} alt={currentMeme.title} className="brand-img" />
+                </div>
+
+                {/* Global Metrics Dashboard */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', marginBottom: '28px' }}>
                   <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Value Locked</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#fff', marginTop: '4px' }}>$18,450,920</div>
-                    <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '2px' }}>↑ 14.2% 24h</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Value Locked</div>
+                    <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#fff', marginTop: '4px' }}>$18,450,920</div>
+                    <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: '2px', fontWeight: 600 }}>↑ 14.2% 24h</div>
                   </div>
 
                   <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>$SCHWEPE Emission Rate</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ec4899', marginTop: '4px' }}>10.0 / block</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>$SCHWEPE Emission Rate</div>
+                    <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#ec4899', marginTop: '4px' }}>10.0 / block</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>MasterChef Block Allocation</div>
                   </div>
 
                   <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Total Allocation Points</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a855f7', marginTop: '4px' }}>1,000 Points</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Allocation Points</div>
+                    <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#a855f7', marginTop: '4px' }}>1,000 Points</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>Across {pools.length} Active Pools</div>
                   </div>
 
                   <div className="stat-card">
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Harvestable Rewards</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px' }}>0.00 SCHWEPE</div>
-                    <button onClick={() => alert('No rewards to claim yet!')} className="btn-gradient" style={{ padding: '4px 10px', fontSize: '0.75rem', marginTop: '6px' }}>Claim All</button>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Harvestable Rewards</div>
+                    <div style={{ fontSize: '1.7rem', fontWeight: 900, color: '#38bdf8', marginTop: '4px' }}>0.00 SCHWEPE</div>
+                    <button onClick={() => alert('No rewards to claim yet!')} className="btn-gradient" style={{ padding: '5px 12px', fontSize: '0.75rem', marginTop: '6px' }}>Claim All</button>
                   </div>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '18px 24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
+                <div className="glass-panel" style={{ padding: '20px 28px', marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                   <div>
-                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>🌾 MasterChef Reward Pools</h2>
-                    <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Executive Yield Farm Management on Somnia EVM</p>
+                    <h2 style={{ fontSize: '1.3rem', fontWeight: 900 }}>🌾 Active MasterChef Reward Pools</h2>
+                    <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>High-Yield Liquidity Mining on Somnia EVM</p>
                   </div>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <button onClick={() => { setDeployTab('contract'); setShowDeployModal(true); }} className="btn-deploy">🚀 Deploy Contract</button>
@@ -529,30 +582,35 @@
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '22px' }}>
                   {pools.map(pool => (
-                    <div key={pool.id} className="glass-panel" style={{ padding: '22px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{pool.name}</h3>
-                          <a href={`https://explorer.somnia.network/address/${pool.pairAddress}`} target="_blank" style={{ color: '#38bdf8', fontSize: '0.75rem', textDecoration: 'none' }}>
-                            {pool.pairAddress.substring(0,8)}...{pool.pairAddress.substring(36)} ↗
-                          </a>
+                    <div key={pool.id} className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img src={pool.memeImg} alt={pool.name} style={{ width: '42px', height: '42px', borderRadius: '10px', objectFit: 'cover' }} />
+                            <div>
+                              <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#fff' }}>{pool.name}</h3>
+                              <a href={`https://explorer.somnia.network/address/${pool.pairAddress}`} target="_blank" style={{ color: '#38bdf8', fontSize: '0.75rem', textDecoration: 'none' }}>
+                                {pool.pairAddress.substring(0,8)}...{pool.pairAddress.substring(36)} ↗
+                              </a>
+                            </div>
+                          </div>
+                          <span className="badge-somnia" style={{ color: '#ec4899', borderColor: 'rgba(236,72,153,0.4)', background: 'rgba(236,72,153,0.15)', fontSize: '0.85rem' }}>
+                            ✨ {pool.apr} APR
+                          </span>
                         </div>
-                        <span className="badge-somnia" style={{ color: '#ec4899', borderColor: 'rgba(236,72,153,0.4)', background: 'rgba(236,72,153,0.15)', fontSize: '0.85rem' }}>
-                          ✨ {pool.apr} APR
-                        </span>
+
+                        <div style={{ background: 'rgba(11,17,32,0.8)', padding: '14px', borderRadius: '14px', marginBottom: '18px', fontSize: '0.85rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}><span>Pool TVL</span><strong style={{ color: '#fff' }}>{pool.tvl}</strong></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}><span>Alloc Weight</span><strong style={{ color: '#a855f7' }}>{pool.allocPts} pts ({pool.weight})</strong></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}><span>Earned $SCHWEPE</span><strong style={{ color: '#38bdf8' }}>0.00 SCHWEPE</strong></div>
+                        </div>
                       </div>
 
-                      <div style={{ background: 'rgba(15,23,42,0.8)', padding: '14px', borderRadius: '14px', marginBottom: '16px', fontSize: '0.85rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}><span>Pool TVL</span><strong style={{ color: '#fff' }}>{pool.tvl}</strong></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#94a3b8' }}><span>Alloc Weight</span><strong style={{ color: '#a855f7' }}>{pool.allocPts} pts ({pool.weight})</strong></div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8' }}><span>Earned $SCHWEPE</span><strong style={{ color: '#38bdf8' }}>{pool.earned}</strong></div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => alert('Harvested rewards!')} className="btn-gradient" style={{ flex: 1, padding: '10px', fontSize: '0.85rem' }}>Harvest</button>
-                        <button onClick={() => alert('Staked LP tokens!')} className="btn-deploy" style={{ flex: 1, padding: '10px', fontSize: '0.85rem', justifyContent: 'center' }}>Stake LP</button>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button onClick={() => alert('Harvested rewards!')} className="btn-gradient" style={{ flex: 1, padding: '11px', fontSize: '0.85rem' }}>Harvest</button>
+                        <button onClick={() => alert('Staked LP tokens!')} className="btn-deploy" style={{ flex: 1, padding: '11px', fontSize: '0.85rem', justifyContent: 'center' }}>Stake LP</button>
                       </div>
                     </div>
                   ))}
@@ -560,49 +618,45 @@
               </div>
             )}
 
-            {/* SWAP VIEW WITH DYNAMIC AMM QUOTE, ACCURATE BALANCE, AND LIVE PIPELINE EXECUTION */}
+            {/* SWAP VIEW */}
             {activeTab === 'swap' && (
-              <div className="glass-panel" style={{ maxWidth: '480px', margin: '0 auto', padding: '24px' }}>
-                <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', fontWeight: 800 }}>Swap Tokens</h2>
+              <div className="glass-panel" style={{ maxWidth: '490px', margin: '0 auto', padding: '26px' }}>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '18px', fontWeight: 900 }}>Swap Tokens</h2>
                 
-                {/* Pay Input */}
-                <div style={{ background: 'rgba(15,23,42,0.8)', padding: '16px', borderRadius: '16px', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '0.85rem', marginBottom: '6px' }}>
+                <div style={{ background: 'rgba(11,17,32,0.85)', padding: '18px', borderRadius: '18px', marginBottom: '14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '0.85rem', marginBottom: '8px' }}>
                     <span>You Pay</span><span>Balance: {tokenInBalance} {tokenIn.symbol}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <input type="number" value={amountIn} onChange={e => setAmountIn(e.target.value)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.8rem', width: '55%', outline: 'none', fontWeight: 700 }} />
+                    <input type="number" value={amountIn} onChange={e => setAmountIn(e.target.value)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.9rem', width: '55%', outline: 'none', fontWeight: 800 }} />
                     <select className="token-select" value={tokenIn.symbol} onChange={e => setTokenIn(TOKENS.find(t => t.symbol === e.target.value))}>
                       {TOKENS.map(t => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
                     </select>
                   </div>
                 </div>
 
-                <div style={{ textAlign: 'center', margin: '8px 0', color: '#a855f7', fontSize: '1.2rem' }}>⬇</div>
+                <div style={{ textAlign: 'center', margin: '10px 0', color: '#a855f7', fontSize: '1.3rem' }}>⬇</div>
 
-                {/* Receive Input */}
-                <div style={{ background: 'rgba(15,23,42,0.8)', padding: '16px', borderRadius: '16px', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '0.85rem', marginBottom: '6px' }}>
+                <div style={{ background: 'rgba(11,17,32,0.85)', padding: '18px', borderRadius: '18px', marginBottom: '22px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: '0.85rem', marginBottom: '8px' }}>
                     <span>You Receive (Estimated AMM Quote)</span><span>Balance: {tokenOutBalance} {tokenOut.symbol}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <input type="text" readOnly value={dynamicAmountOut} style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '1.8rem', width: '55%', outline: 'none', fontWeight: 700 }} />
+                    <input type="text" readOnly value={dynamicAmountOut} style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '1.9rem', width: '55%', outline: 'none', fontWeight: 800 }} />
                     <select className="token-select" value={tokenOut.symbol} onChange={e => setTokenOut(TOKENS.find(t => t.symbol === e.target.value))}>
                       {TOKENS.map(t => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
                     </select>
                   </div>
                 </div>
 
-                {/* Dynamic Quote Details */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', marginBottom: '20px', fontSize: '0.85rem', color: '#94a3b8' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '14px', marginBottom: '22px', fontSize: '0.85rem', color: '#94a3b8' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Price Ratio</span><span>1 {tokenIn.symbol} ≈ {(parseFloat(dynamicAmountOut)/parseFloat(amountIn||'1')).toFixed(4)} {tokenOut.symbol}</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Slippage Tolerance</span><span>0.5%</span></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}><span>Price Impact</span><span style={{ color: priceImpact > 2 ? '#ef4444' : '#22c55e' }}>{priceImpact}%</span></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Somnia EVM Network Fee</span><span style={{ color: '#22c55e' }}>&lt;$0.001</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Somnia EVM Fee</span><span style={{ color: '#22c55e' }}>&lt;$0.001</span></div>
                 </div>
 
-                {/* Overhauled Swap Button: Executes Live 5-Stage Web3 Pipeline */}
-                <button onClick={runSwapPipeline} className="btn-gradient" style={{ width: '100%', fontSize: '1.1rem', padding: '14px' }}>
+                <button onClick={runSwapPipeline} className="btn-gradient" style={{ width: '100%', fontSize: '1.15rem', padding: '15px' }}>
                   {wallet ? 'Swap' : 'Connect Wallet'}
                 </button>
               </div>
@@ -610,7 +664,7 @@
 
             {/* LIQUIDITY VIEW */}
             {activeTab === 'liquidity' && (
-              <div className="glass-panel" style={{ maxWidth: '500px', margin: '0 auto', padding: '24px' }}>
+              <div className="glass-panel" style={{ maxWidth: '520px', margin: '0 auto', padding: '26px' }}>
                 <h2>💧 Add Liquidity Pool</h2>
                 <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '20px' }}>Earn 0.25% trading fees on Somnia Network</p>
                 <button className="btn-gradient" style={{ width: '100%' }}>Supply SOMI / SCHWEPE Liquidity</button>
@@ -618,13 +672,13 @@
             )}
           </main>
 
-          {/* LIVE PIPELINE EXECUTION MODAL */}
+          {/* LIVE PIPELINE MODAL */}
           {showPipelineModal && (
             <div className="modal-overlay" onClick={() => setShowPipelineModal(false)}>
               <div className="modal-content" style={{ maxWidth: '580px' }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>⚡ Somnia Web3 Execution Pipeline</h3>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 900 }}>⚡ Somnia Web3 Execution Pipeline</h3>
                     <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Live on-chain JSON-RPC execution on Somnia EVM (5031)</p>
                   </div>
                   <button onClick={() => setShowPipelineModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
@@ -632,8 +686,8 @@
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '380px', overflowY: 'auto' }}>
                   {pipelineLogs.map((log, i) => (
-                    <div key={i} style={{ background: 'rgba(15,23,42,0.8)', border: '1px solid ' + (log.status === 'SUCCESS' ? 'rgba(34,197,94,0.4)' : 'rgba(168,85,247,0.4)'), padding: '12px', borderRadius: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <div key={i} style={{ background: 'rgba(11,17,32,0.8)', border: '1px solid ' + (log.status === 'SUCCESS' ? 'rgba(34,197,94,0.4)' : 'rgba(168,85,247,0.4)'), padding: '14px', borderRadius: '14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '0.85rem' }}>
                         <span style={{ color: log.status === 'SUCCESS' ? '#22c55e' : '#a855f7' }}>{log.stage}</span>
                         <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{log.timestamp}</span>
                       </div>
@@ -645,7 +699,7 @@
                   ))}
                 </div>
 
-                <button onClick={() => setShowPipelineModal(false)} className="btn-gradient" style={{ width: '100%', marginTop: '16px' }}>
+                <button onClick={() => setShowPipelineModal(false)} className="btn-gradient" style={{ width: '100%', marginTop: '18px' }}>
                   {isRunning ? 'Executing Pipeline...' : 'Close Modal'}
                 </button>
               </div>
@@ -657,27 +711,27 @@
             <div className="modal-overlay" onClick={() => setShowDeployModal(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>🚀 Deploy &amp; Manage MasterChef</h3>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 900 }}>🚀 Deploy &amp; Manage MasterChef</h3>
                   <button onClick={() => setShowDeployModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
                 </div>
 
                 {deployTab === 'contract' ? (
                   <div>
-                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '14px', marginBottom: '18px', fontSize: '0.85rem' }}>
                       <div style={{ color: '#94a3b8', marginBottom: '4px' }}>Target Network</div>
-                      <div style={{ color: '#38bdf8', fontWeight: 700 }}>Somnia Mainnet (Chain ID 5031)</div>
+                      <div style={{ color: '#38bdf8', fontWeight: 800 }}>Somnia Mainnet (Chain ID 5031)</div>
                     </div>
-                    <button onClick={() => { setDeployTab('contract'); alert('Deployed MasterChef bytecode!'); setShowDeployModal(false); }} className="btn-deploy" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
+                    <button onClick={() => { setDeployTab('contract'); alert('Deployed MasterChef bytecode!'); setShowDeployModal(false); }} className="btn-deploy" style={{ width: '100%', justifyContent: 'center', padding: '13px' }}>
                       🚀 Deploy SchwepeMasterChef Bytecode
                     </button>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', marginBottom: '16px', fontSize: '0.85rem' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '14px', marginBottom: '18px', fontSize: '0.85rem' }}>
                       <div style={{ color: '#94a3b8', marginBottom: '4px' }}>LP Token Address</div>
-                      <input type="text" value={SOMNEX_LP_TARGET} readOnly style={{ width: '100%', background: '#070913', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '8px', borderRadius: '8px' }} />
+                      <input type="text" value={SOMNEX_LP_TARGET} readOnly style={{ width: '100%', background: '#070913', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '10px', borderRadius: '10px' }} />
                     </div>
-                    <button onClick={() => { alert('Added pool!'); setShowDeployModal(false); }} className="btn-gradient" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
+                    <button onClick={() => { alert('Added pool!'); setShowDeployModal(false); }} className="btn-gradient" style={{ width: '100%', justifyContent: 'center', padding: '13px' }}>
                       ➕ Add Pool to MasterChef
                     </button>
                   </div>
@@ -691,27 +745,27 @@
             <div className="modal-overlay" onClick={() => setShowWalletModal(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Connect Web3 Wallet</h3>
+                  <h3 style={{ fontSize: '1.3rem', fontWeight: 900 }}>Connect Web3 Wallet</h3>
                   <button onClick={() => setShowWalletModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.4rem', cursor: 'pointer' }}>✕</button>
                 </div>
                 
                 {wallet ? (
                   <div>
-                    <div style={{ background: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '14px', marginBottom: '16px', border: '1px solid rgba(168,85,247,0.3)' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.05)', padding: '18px', borderRadius: '16px', marginBottom: '18px', border: '1px solid rgba(168,85,247,0.3)' }}>
                       <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Active Account ({walletType})</div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', wordBreak: 'break-all', marginTop: '6px', color: '#fff' }}>{wallet}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#22c55e', marginTop: '8px' }}>Balance: {tokenInBalance} {tokenIn.symbol}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', wordBreak: 'break-all', marginTop: '6px', color: '#fff' }}>{wallet}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#22c55e', marginTop: '8px', fontWeight: 700 }}>Balance: {tokenInBalance} {tokenIn.symbol}</div>
                     </div>
                     <button onClick={() => { setWallet(''); setWalletType(''); setShowWalletModal(false); }} className="btn-gradient" style={{ width: '100%', background: '#ef4444' }}>Disconnect Wallet</button>
                   </div>
                 ) : (
                   <div>
                     <div className="wallet-option" onClick={handleConnectWallet}>
-                      <span style={{ fontWeight: 700 }}>🦊 MetaMask / EIP-1193</span>
+                      <span style={{ fontWeight: 800 }}>🦊 MetaMask / EIP-1193</span>
                       <span style={{ color: '#22c55e', fontSize: '0.75rem' }}>Ready</span>
                     </div>
                     <div className="wallet-option" onClick={handleConnectWallet}>
-                      <span style={{ fontWeight: 700 }}>⚡ Thirdweb SDK v5</span>
+                      <span style={{ fontWeight: 800 }}>⚡ Thirdweb SDK v5</span>
                       <span style={{ color: '#38bdf8', fontSize: '0.75rem' }}>Client</span>
                     </div>
                   </div>
@@ -720,7 +774,7 @@
             </div>
           )}
 
-          <footer style={{ textAlign: 'center', color: '#64748b', marginTop: '40px', fontSize: '0.8rem' }}>
+          <footer style={{ textAlign: 'center', color: '#64748b', marginTop: '44px', fontSize: '0.8rem' }}>
             SchwepeSwap MasterChef Hub &copy; 2026 | Somnia Address Target: <a href="https://explorer.somnia.network/address/0xdd10620866c4f586b1213d3818811faf3718fce3" target="_blank" style={{ color: '#38bdf8' }}>0xdd10620866c4f586b1213d3818811faf3718fce3</a>
           </footer>
         </div>
