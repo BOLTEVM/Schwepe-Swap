@@ -24,15 +24,18 @@ export const SOMNIA_CHAINS = {
 };
 
 export const SOMIA_SOMI_TOKEN_ADDRESS = '0xdd10620866c4f586b1213d3818811faf3718fce3';
+export const SOMNIA_WSOMI_TOKEN_ADDRESS = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
+export const SOMNIA_SOMNEX_LP_PAIR_ADDRESS = '0x8008595d869746E6D594d9EB52E8175714fff278';
 
 export const SCHWEPESWAP_ADDRESSES = {
   5031: {
-    factory: '0x1111111111111111111111111111111111111111',
+    factory: '0xafd71143fb155058e96527b07695d93223747ed1',
     router: '0x2222222222222222222222222222222222222222',
-    wsomi: '0x3333333333333333333333333333333333333333',
+    wsomi: SOMNIA_WSOMI_TOKEN_ADDRESS,
     schwepe: '0x4444444444444444444444444444444444444444',
     masterChef: '0x5555555555555555555555555555555555555555',
-    somiToken: SOMIA_SOMI_TOKEN_ADDRESS
+    somiToken: SOMIA_SOMI_TOKEN_ADDRESS,
+    somnexLp: SOMNIA_SOMNEX_LP_PAIR_ADDRESS
   },
   50312: {
     factory: '0x6666666666666666666666666666666666666666',
@@ -40,7 +43,8 @@ export const SCHWEPESWAP_ADDRESSES = {
     wsomi: '0x8888888888888888888888888888888888888888',
     schwepe: '0x9999999999999999999999999999999999999999',
     masterChef: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    somiToken: SOMIA_SOMI_TOKEN_ADDRESS
+    somiToken: SOMIA_SOMI_TOKEN_ADDRESS,
+    somnexLp: SOMNIA_SOMNEX_LP_PAIR_ADDRESS
   }
 };
 
@@ -56,9 +60,16 @@ export const DEFAULT_TOKENS = [
   {
     symbol: 'WSOMI',
     name: 'Wrapped SOMI',
-    address: '0x3333333333333333333333333333333333333333',
+    address: SOMNIA_WSOMI_TOKEN_ADDRESS,
     decimals: 18,
     logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png'
+  },
+  {
+    symbol: 'SALP',
+    name: 'Somnex AMM LP Token',
+    address: SOMNIA_SOMNEX_LP_PAIR_ADDRESS,
+    decimals: 18,
+    logoURI: 'https://explorer.somnia.network/assets/favicon/apple-touch-icon-180x180.png'
   },
   {
     symbol: 'SCHWEPE',

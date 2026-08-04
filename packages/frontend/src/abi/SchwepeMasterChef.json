@@ -1,0 +1,11 @@
+[
+  "function schwepe() external view returns (address)",
+  "function schwepePerBlock() external view returns (uint256)",
+  "function totalAllocPoint() external view returns (uint256)",
+  "function poolLength() external view returns (uint256)",
+  "function add(uint256 allocPoint, address lpToken, bool withUpdate) external",
+  "function deposit(uint256 pid, uint256 amount) external",
+  "function withdraw(uint256 pid, uint256 amount) external",
+  "event Deposit(address indexed user, uint256 indexed pid, uint256 amount)",
+  "event Withdraw(address indexed user, uint256 indexed pid, uint256 amount)"
+]

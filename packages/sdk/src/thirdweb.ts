@@ -1,36 +1,57 @@
-import { ThirdwebSDK } from '@thirdweb-dev/sdk';
+import { createThirdwebClient, defineChain, getContract, readContract, prepareContractCall } from 'thirdweb';
 import { SOMNIA_CHAINS } from './constants.ts';
 
 export class SchwepeThirdwebClient {
-  private sdkMainnet: ThirdwebSDK;
-  private sdkTestnet: ThirdwebSDK;
+  private client: ReturnType<typeof createThirdwebClient>;
 
   constructor(clientId?: string) {
-    const options = clientId ? { clientId } : {};
-    this.sdkMainnet = new ThirdwebSDK(SOMNIA_CHAINS.MAINNET.rpc, options);
-    this.sdkTestnet = new ThirdwebSDK(SOMNIA_CHAINS.TESTNET.rpc, options);
+    this.client = createThirdwebClient({
+      clientId: clientId || process.env.THIRDWEB_CLIENT_ID || 'demo-client-id-somnia'
+    });
   }
 
-  public getSDK(chainId: number): ThirdwebSDK {
-    if (chainId === SOMNIA_CHAINS.MAINNET.chainId) {
-      return this.sdkMainnet;
-    } else if (chainId === SOMNIA_CHAINS.TESTNET.chainId) {
-      return this.sdkTestnet;
-    }
-    throw new Error(`Unsupported Somnia Chain ID: ${chainId}`);
+  public getClient() {
+    return this.client;
   }
 
-  public async getContract(address: string, chainId: number = SOMNIA_CHAINS.MAINNET.chainId) {
-    const sdk = this.getSDK(chainId);
-    return await sdk.getContract(address);
+  public getSomniaChain(chainId: number = 5031) {
+    const isMainnet = chainId === SOMNIA_CHAINS.MAINNET.chainId;
+    const config = isMainnet ? SOMNIA_CHAINS.MAINNET : SOMNIA_CHAINS.TESTNET;
+    
+    return defineChain({
+      id: config.chainId,
+      name: config.name,
+      nativeCurrency: config.nativeCurrency,
+      rpc: config.rpc
+    });
   }
 
-  public async getBalance(walletAddress: string, tokenAddress?: string, chainId: number = SOMNIA_CHAINS.MAINNET.chainId) {
-    const sdk = this.getSDK(chainId);
-    if (!tokenAddress || tokenAddress.toLowerCase() === SOMNIA_CHAINS.MAINNET.nativeCurrency.symbol.toLowerCase()) {
-      return await sdk.getBalance(walletAddress);
-    }
-    const contract = await sdk.getContract(tokenAddress, 'token');
-    return await contract.balanceOf(walletAddress);
+  public getContractInstance(address: string, chainId: number = 5031, abi?: any) {
+    const chain = this.getSomniaChain(chainId);
+    return getContract({
+      client: this.client,
+      chain,
+      address,
+      abi
+    });
+  }
+
+  public async readContractState(address: string, method: string, params: any[] = [], chainId: number = 5031, abi?: any) {
+    const contract = this.getContractInstance(address, chainId, abi);
+    return await readContract({
+      contract,
+      method,
+      params
+    });
+  }
+
+  public prepareTransaction(address: string, method: string, params: any[] = [], value?: bigint, chainId: number = 5031, abi?: any) {
+    const contract = this.getContractInstance(address, chainId, abi);
+    return prepareContractCall({
+      contract,
+      method,
+      params,
+      value
+    });
   }
 }
