@@ -77,6 +77,16 @@ const abis = {
     "function withdraw(uint256 pid, uint256 amount) external",
     "event Deposit(address indexed user, uint256 indexed pid, uint256 amount)",
     "event Withdraw(address indexed user, uint256 indexed pid, uint256 amount)"
+  ],
+  SchwepeReactiveKeeper: [
+    "function owner() external view returns (address)",
+    "function masterChef() external view returns (address)",
+    "function minHarvestThreshold() external view returns (uint256)",
+    "function totalAutoCompounded() external view returns (uint256)",
+    "function totalReactiveExecutions() external view returns (uint256)",
+    "function evaluateAndCompound(uint256 _pid, address _targetLp) external returns (bool)",
+    "function setMinHarvestThreshold(uint256 _newThreshold) external",
+    "event AgenticYieldCompounded(uint256 indexed pid, uint256 yieldHarvested, uint256 timestamp)"
   ]
 };
 
