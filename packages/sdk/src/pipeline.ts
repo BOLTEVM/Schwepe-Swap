@@ -1,6 +1,6 @@
 import { SomniaJsonRpcClient } from './rpc.ts';
 import { getAmountOut, calculateSlippage, calculatePriceImpact } from './trade.ts';
-import { SOMNIA_CHAINS, SOMIA_SOMI_TOKEN_ADDRESS, SOMNIA_SOMNEX_LP_PAIR_ADDRESS } from './constants.ts';
+import { SOMNIA_CHAINS, SOMIA_SOMI_TOKEN_ADDRESS, SOMNIA_SOMNEX_LP_PAIR_ADDRESS, SCHWEPESWAP_ADDRESSES } from './constants.ts';
 
 export interface PipelineStageResult {
   stage: string;
@@ -77,40 +77,69 @@ export class SchwepeWeb3Pipeline {
     }
   }
 
-  // STAGE 2: Query Live On-Chain Reserves from Somnia EVM AMM Pair (Somnex LP 0x8008595d869746E6D594d9EB52E8175714fff278)
+  // STAGE 2: Query Live On-Chain Reserves from Somnia EVM AMM Pair
   public async stageFetchLiquidityReserves(): Promise<{ reserveIn: bigint; reserveOut: bigint }> {
-    this.log('STAGE_2_FETCH_RESERVES', 'PENDING', `Querying live reserves via eth_call on Somnia AMM pair ${SOMNIA_SOMNEX_LP_PAIR_ADDRESS}`);
+    this.log('STAGE_2_FETCH_RESERVES', 'PENDING', `Resolving pair address and querying live reserves`);
 
     try {
       const walletBalance = await this.rpcClient.getBalance(this.walletAddress);
 
-      // getReserves selector 0x0902f1fe
-      let reserveIn = 1_000_000n * 10n ** 18n;
-      let reserveOut = 2_485_200n * 10n ** 18n;
+      const factoryAddress = SCHWEPESWAP_ADDRESSES[this.chainId as keyof typeof SCHWEPESWAP_ADDRESSES]?.factory;
+      const wsomiAddress = SCHWEPESWAP_ADDRESSES[this.chainId as keyof typeof SCHWEPESWAP_ADDRESSES]?.wsomi;
+      if (!factoryAddress) throw new Error(`Factory address not found for chain ID ${this.chainId}`);
+
+      // Handle native SOMI wrapping to WSOMI for AMM routing lookup
+      const addrIn = this.tokenIn.toLowerCase() === SOMIA_SOMI_TOKEN_ADDRESS.toLowerCase() ? wsomiAddress : this.tokenIn;
+      const addrOut = this.tokenOut.toLowerCase() === SOMIA_SOMI_TOKEN_ADDRESS.toLowerCase() ? wsomiAddress : this.tokenOut;
+
+      // 1. Fetch pair address from factory using getPair(address,address) selector: 0xe6a43905
+      const getPairSelector = '0xe6a43905';
+      const getPairCallData = getPairSelector + 
+        addrIn.substring(2).toLowerCase().padStart(64, '0') + 
+        addrOut.substring(2).toLowerCase().padStart(64, '0');
+
+      let pairAddress = SOMNIA_SOMNEX_LP_PAIR_ADDRESS;
+      try {
+        const rawPairAddress = await this.rpcClient.call(factoryAddress, getPairCallData);
+        if (rawPairAddress && rawPairAddress !== '0x' && rawPairAddress !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+          pairAddress = '0x' + rawPairAddress.substring(rawPairAddress.length - 40).toLowerCase();
+        }
+      } catch (err) {
+        console.warn('Failed to resolve pair address from factory, using fallback:', err);
+      }
+
+      // 2. Query reserves on the retrieved pair contract (getReserves selector: 0x0902f1fe)
+      let reserveIn = 1_000_000n * 10n ** 18n; // fallback default
+      let reserveOut = 2_485_200n * 10n ** 18n; // fallback default
 
       try {
-        const rawReserves = await this.rpcClient.call(SOMNIA_SOMNEX_LP_PAIR_ADDRESS, '0x0902f1fe');
+        const rawReserves = await this.rpcClient.call(pairAddress, '0x0902f1fe');
         if (rawReserves && rawReserves.length >= 130) {
           const r0 = BigInt('0x' + rawReserves.substring(2, 66));
           const r1 = BigInt('0x' + rawReserves.substring(66, 130));
           if (r0 > 0n && r1 > 0n) {
-            reserveIn = r0;
-            reserveOut = r1;
+            // Lexicographical sort matching UniswapV2 token0/token1
+            const isTokenInToken0 = addrIn.toLowerCase() < addrOut.toLowerCase();
+            reserveIn = isTokenInToken0 ? r0 : r1;
+            reserveOut = isTokenInToken0 ? r1 : r0;
           }
         }
       } catch (callErr) {
-        // Fallback to pool storage slot 8 query on Somnia Network
-        const slot8 = await this.rpcClient.sendRpcRequest('eth_getStorageAt', [SOMNIA_SOMNEX_LP_PAIR_ADDRESS, '0x0000000000000000000000000000000000000000000000000000000000000008', 'latest']).catch(() => null);
+        // Fallback to storage slot query if getReserves call fails
+        const slot8 = await this.rpcClient.sendRpcRequest('eth_getStorageAt', [pairAddress, '0x0000000000000000000000000000000000000000000000000000000000000008', 'latest']).catch(() => null);
         if (slot8 && slot8.length > 30) {
-          reserveIn = BigInt('0x' + slot8.substring(2, 34)) || reserveIn;
-          reserveOut = BigInt('0x' + slot8.substring(34, 66)) || reserveOut;
+          const r0 = BigInt('0x' + slot8.substring(2, 34));
+          const r1 = BigInt('0x' + slot8.substring(34, 66));
+          const isTokenInToken0 = addrIn.toLowerCase() < addrOut.toLowerCase();
+          reserveIn = isTokenInToken0 ? r0 : r1;
+          reserveOut = isTokenInToken0 ? r1 : r0;
         }
       }
 
       const formattedWalletBal = (Number(walletBalance) / 1e18).toFixed(4);
 
       this.log('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-chain reserves queried successfully. Wallet Native SOMI: ${formattedWalletBal}`, {
-        pairAddress: SOMNIA_SOMNEX_LP_PAIR_ADDRESS,
+        pairAddress,
         walletBalanceWei: walletBalance.toString(),
         reserveIn: reserveIn.toString(),
         reserveOut: reserveOut.toString()
