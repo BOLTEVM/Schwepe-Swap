@@ -108,12 +108,12 @@ export class SchwepeWeb3Pipeline {
         console.warn('Failed to resolve pair address from factory, using fallback:', err);
       }
 
-      // 2. Query reserves on the retrieved pair contract (getReserves selector: 0x0902f1fe)
+      // 2. Query reserves on the retrieved pair contract (getReserves selector: 0x0902f1ac)
       let reserveIn = 1_000_000n * 10n ** 18n; // fallback default
       let reserveOut = 2_485_200n * 10n ** 18n; // fallback default
 
       try {
-        const rawReserves = await this.rpcClient.call(pairAddress, '0x0902f1fe');
+        const rawReserves = await this.rpcClient.call(pairAddress, '0x0902f1ac');
         if (rawReserves && rawReserves.length >= 130) {
           const r0 = BigInt('0x' + rawReserves.substring(2, 66));
           const r1 = BigInt('0x' + rawReserves.substring(66, 130));
@@ -248,7 +248,7 @@ const pipeline = new SchwepeWeb3Pipeline({
   chainId: 5031,
   walletAddress: '0xdd10620866c4f586b1213d3818811faf3718fce3',
   tokenIn: '0xdd10620866c4f586b1213d3818811faf3718fce3', // $SOMI Token Target
-  tokenOut: '0x4444444444444444444444444444444444444444',
+  tokenOut: '0x046ede9564a72571df6f5e44d0405360c0f4dcab', // WSOMI (paired with SOMI in Somnex LP)
   amountIn: '100',
   slippageBps: 50
 });

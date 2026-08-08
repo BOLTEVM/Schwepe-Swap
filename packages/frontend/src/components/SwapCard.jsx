@@ -55,7 +55,7 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               jsonrpc: '2.0', id: 3, method: 'eth_call',
-              params: [{ to: pairAddress, data: '0x0902f1fe' }, 'latest']
+              params: [{ to: pairAddress, data: '0x0902f1ac' }, 'latest']
             })
           });
           const reservesJson = await reservesRes.json();

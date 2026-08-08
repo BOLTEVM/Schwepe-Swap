@@ -32,7 +32,7 @@ export const SCHWEPESWAP_ADDRESSES = {
     factory: '0xafd71143fb155058e96527b07695d93223747ed1',
     router: '0x2222222222222222222222222222222222222222',
     wsomi: SOMNIA_WSOMI_TOKEN_ADDRESS,
-    schwepe: '0x4444444444444444444444444444444444444444',
+    schwepe: '0xdd10620866c4f586b1213d3818811faf3718fce3', // SCHWEPE Token (deployed)
     masterChef: '0x5555555555555555555555555555555555555555',
     somiToken: SOMIA_SOMI_TOKEN_ADDRESS,
     somnexLp: SOMNIA_SOMNEX_LP_PAIR_ADDRESS
@@ -74,7 +74,7 @@ export const DEFAULT_TOKENS = [
   {
     symbol: 'SCHWEPE',
     name: 'Schwepe Governance',
-    address: '0x4444444444444444444444444444444444444444',
+    address: '0xdd10620866c4f586b1213d3818811faf3718fce3',
     decimals: 18,
     logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984/logo.png'
   },
