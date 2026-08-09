@@ -66,7 +66,10 @@ export default function App() {
                 from: walletAddress,
                 to: targetTo,
                 value: txValue,
-                data: txData
+                data: txData,
+                gas: '0x186a0', // 100,000 gas limit (prevents 21M gas default 39 SOMI fee error)
+                maxPriorityFeePerGas: '0x3b9aca00', // 1 Gwei
+                maxFeePerGas: '0x77359400' // 2 Gwei
               }]
             });
           } catch (e) {

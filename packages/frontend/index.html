@@ -268,11 +268,11 @@
       if (!weiHexOrString || weiHexOrString === '0x' || weiHexOrString === '0x0') return '0.0000';
       try {
         const wei = BigInt(weiHexOrString);
-        const divisor = 10n ** 18n;
-        const integerPart = wei / divisor;
-        const remainder = wei % divisor;
-        const fractionPart = (remainder / 10n ** 14n).toString().padStart(4, '0');
-        return `${integerPart.toString()}.${fractionPart}`;
+        if (wei === 0n) return '0.0000';
+        const num = Number(wei) / 1e18;
+        if (num >= 1000) return num.toLocaleString('en-US', { maximumFractionDigits: 4 });
+        if (num >= 0.0001) return num.toFixed(4).replace(/\.?0+$/, '');
+        return num.toFixed(6).replace(/\.?0+$/, '');
       } catch (err) {
         console.error('Format Wei Error:', err);
         return '0.0000';
@@ -458,19 +458,23 @@
 
       const fetchNativeBalanceRpc = async (address, rpcUrl) => {
         try {
-          if (window.ethereum) {
-            const raw = await window.ethereum.request({ method: 'eth_getBalance', params: [address, 'latest'] });
-            return formatWeiToEther(raw);
-          }
+          // Direct Somnia RPC Query for guaranteed chain accuracy
           const res = await fetch(rpcUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] })
           });
           const json = await res.json();
-          if (json.result) return formatWeiToEther(json.result);
+          if (json.result) {
+            const formatted = formatWeiToEther(json.result);
+            if (formatted !== '0.0000') return formatted;
+          }
+          if (window.ethereum) {
+            const raw = await window.ethereum.request({ method: 'eth_getBalance', params: [address, 'latest'] });
+            return formatWeiToEther(raw);
+          }
         } catch (e) {
-          console.error(e);
+          console.error('Error fetching native balance:', e);
         }
         return '0.0000';
       };
@@ -478,13 +482,6 @@
       const fetchErc20BalanceRpc = async (walletAddress, tokenAddress, rpcUrl) => {
         try {
           const callData = '0x70a08231' + walletAddress.substring(2).padStart(64, '0');
-          if (window.ethereum) {
-            const raw = await window.ethereum.request({
-              method: 'eth_call',
-              params: [{ to: tokenAddress, data: callData }, 'latest']
-            });
-            return formatWeiToEther(raw);
-          }
           const res = await fetch(rpcUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -494,9 +491,19 @@
             })
           });
           const json = await res.json();
-          if (json.result && json.result !== '0x') return formatWeiToEther(json.result);
+          if (json.result && json.result !== '0x') {
+            const formatted = formatWeiToEther(json.result);
+            if (formatted !== '0.0000') return formatted;
+          }
+          if (window.ethereum) {
+            const raw = await window.ethereum.request({
+              method: 'eth_call',
+              params: [{ to: tokenAddress, data: callData }, 'latest']
+            });
+            return formatWeiToEther(raw);
+          }
         } catch (e) {
-          console.error(e);
+          console.error('Error fetching ERC20 balance:', e);
         }
         return '0.0000';
       };
@@ -641,7 +648,10 @@
               from: wallet,
               to: targetTo,
               value: txValue,
-              data: txData
+              data: txData,
+              gas: '0x186a0', // 100,000 gas limit (prevents 21,000,000 gas default 39 SOMI fee error)
+              maxPriorityFeePerGas: '0x3b9aca00', // 1 Gwei
+              maxFeePerGas: '0x77359400' // 2 Gwei
             }]
           });
 
