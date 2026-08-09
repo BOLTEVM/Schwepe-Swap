@@ -53,25 +53,52 @@ export default function App() {
         let realTxHash = null;
         if (window.ethereum && walletAddress) {
           try {
+            const pairAddress = '0x8008595d869746E6D594d9EB52E8175714fff278';
+            const wsomiAddress = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
             const tokenInAddr = options?.tokenIn || '0x0000000000000000000000000000000000000000';
             const amountInWei = BigInt(Math.floor(parseFloat(options?.amountIn || '100') * 1e18));
             const isNative = tokenInAddr === '0x0000000000000000000000000000000000000000' || options?.tokenIn === 'somi';
-            const targetTo = isNative ? '0x046ede9564a72571df6f5e44d0405360c0f4dcab' : '0xdd10620866c4f586b1213d3818811faf3718fce3';
-            const txValue = isNative ? '0x' + amountInWei.toString(16) : '0x0';
-            const txData = isNative ? '0xd0e30db0' : '0x';
+            const outWei = BigInt(minAmountOut || '0');
 
-            realTxHash = await window.ethereum.request({
-              method: 'eth_sendTransaction',
-              params: [{
-                from: walletAddress,
-                to: targetTo,
-                value: txValue,
-                data: txData,
-                gas: '0x30d40', // 200,000 gas limit
-                maxPriorityFeePerGas: '0x165a0bc00', // 6 Gwei priority fee
-                maxFeePerGas: '0x2cb417800' // 12 Gwei max fee (well above Somnia 6 Gwei base fee)
-              }]
-            });
+            const gasParams = {
+              gas: '0x30d40',
+              maxPriorityFeePerGas: '0x165a0bc00',
+              maxFeePerGas: '0x2cb417800'
+            };
+
+            if (isNative) {
+              // Wrap native SOMI -> WSOMI
+              await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: walletAddress, to: wsomiAddress, value: '0x' + amountInWei.toString(16), data: '0xd0e30db0', ...gasParams }]
+              });
+              // Transfer WSOMI to Somnex LP pair
+              const transferCalldata = '0xa9059cbb' + pairAddress.substring(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
+              await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: walletAddress, to: wsomiAddress, data: transferCalldata, ...gasParams }]
+              });
+              // Execute Pair swap(0, outWei, user, "0x")
+              const p0 = '0000000000000000000000000000000000000000000000000000000000000000';
+              const p1 = outWei.toString(16).padStart(64, '0');
+              const p2 = walletAddress.toLowerCase().replace('0x', '').padStart(64, '0');
+              const swapCalldata = '0x022c0d9f' + p0 + p1 + p2 + (128).toString(16).padStart(64, '0') + (0).toString(16).padStart(64, '0');
+
+              realTxHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: walletAddress, to: pairAddress, data: swapCalldata, ...gasParams }]
+              });
+            } else {
+              const p0 = '0000000000000000000000000000000000000000000000000000000000000000';
+              const p1 = outWei.toString(16).padStart(64, '0');
+              const p2 = walletAddress.toLowerCase().replace('0x', '').padStart(64, '0');
+              const swapCalldata = '0x022c0d9f' + p0 + p1 + p2 + (128).toString(16).padStart(64, '0') + (0).toString(16).padStart(64, '0');
+
+              realTxHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: walletAddress, to: pairAddress, data: swapCalldata, ...gasParams }]
+              });
+            }
           } catch (e) {
             console.warn('MetaMask transaction cancelled or failed:', e);
           }

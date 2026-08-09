@@ -273,6 +273,16 @@
       return defaultParams;
     };
 
+    const encodePairSwapCalldata = (amount0OutWei, amount1OutWei, toAddress) => {
+      const selector = '0x022c0d9f';
+      const p0 = amount0OutWei.toString(16).padStart(64, '0');
+      const p1 = amount1OutWei.toString(16).padStart(64, '0');
+      const p2 = toAddress.toLowerCase().replace('0x', '').padStart(64, '0');
+      const offset = (128).toString(16).padStart(64, '0');
+      const len = (0).toString(16).padStart(64, '0');
+      return selector + p0 + p1 + p2 + offset + len;
+    };
+
     const SOMI_TARGET = '0x0000000000000000000000000000000000000000';
     const SOMNEX_LP_TARGET = '0x8008595d869746E6D594d9EB52E8175714fff278';
     const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
@@ -660,29 +670,97 @@
             addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `Native SOMI input — ERC-20 approval skipped.`);
           }
 
-          // STAGE 5: Real MetaMask On-Chain Swap Execution Prompt
-          addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Prompting MetaMask for transaction signature & broadcast...`);
+          // STAGE 5: Real On-Chain AMM Swap Execution (WSOMI.deposit -> WSOMI.transfer(SomnexLP) -> SchwepePair.swap)
+          addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Executing live AMM trade against Somnex LP pair (${SOMNEX_LP_TARGET.substring(0, 10)}...)...`);
           const amountInWei = BigInt(Math.floor(parseFloat(amountIn || '0') * 1e18));
           const hexValue = '0x' + amountInWei.toString(16);
-
-          // Build calldata: WSOMI.deposit() or LP pair transfer/swap
-          const depositCalldata = '0xd0e30db0'; // deposit()
-          const targetTo = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? WSOMI_TARGET : SCHWEPE_TARGET;
-          const txValue = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? hexValue : '0x0';
-          const txData = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? depositCalldata : '0x';
-
           const gasParams = await fetchSomniaGasParams();
 
-          const txHash = await window.ethereum.request({
-            method: 'eth_sendTransaction',
-            params: [{
-              from: wallet,
-              to: targetTo,
-              value: txValue,
-              data: txData,
-              ...gasParams
-            }]
-          });
+          const isNativeSomi = tokenIn.isNative || tokenIn.symbol === 'SOMI';
+          const isSwapToSchwepe = tokenOut.symbol === 'SCHWEPE' || tokenOut.address.toLowerCase() === SCHWEPE_TARGET.toLowerCase();
+
+          // Compute expected output wei from AMM constant product formula
+          const amountInWithFee = amountInWei * 997n;
+          const numerator = amountInWithFee * reserveOut;
+          const denominator = (reserveIn * 1000n) + amountInWithFee;
+          const outWei = denominator !== 0n ? (numerator / denominator) : 0n;
+
+          let txHash = null;
+
+          if (isNativeSomi) {
+            // Step 1: Deposit native SOMI -> WSOMI
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 1/3: Wrapping ${amountIn} SOMI into WSOMI...`);
+            const depositHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: WSOMI_TARGET,
+                value: hexValue,
+                data: '0xd0e30db0', // deposit()
+                ...gasParams
+              }]
+            });
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `SOMI Wrapped to WSOMI! Tx: ${depositHash.substring(0, 16)}...`);
+
+            // Step 2: Transfer WSOMI to Somnex LP pair contract
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 2/3: Transferring WSOMI liquidity to Somnex LP Pair (${SOMNEX_LP_TARGET.substring(0, 10)}...)...`);
+            const transferCalldata = '0xa9059cbb' + SOMNEX_LP_TARGET.substring(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
+            const transferHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: WSOMI_TARGET,
+                data: transferCalldata,
+                ...gasParams
+              }]
+            });
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `WSOMI Transferred to Pair! Tx: ${transferHash.substring(0, 16)}...`);
+
+            // Step 3: Call SchwepePair.swap(0, outWei, recipientAddress, "") to receive SCHWEPE tokens!
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 3/3: Executing Pair Swap to deliver ~${dynamicAmountOut} SCHWEPE to your wallet...`);
+            const amount0Out = isSwapToSchwepe ? 0n : outWei;
+            const amount1Out = isSwapToSchwepe ? outWei : 0n;
+            const swapCalldata = encodePairSwapCalldata(amount0Out, amount1Out, wallet);
+
+            txHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: SOMNEX_LP_TARGET,
+                data: swapCalldata,
+                ...gasParams
+              }]
+            });
+          } else {
+            // Direct ERC20 Transfer to Somnex LP + Pair Swap
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 1/2: Transferring ${amountIn} ${tokenIn.symbol} to Somnex LP Pair...`);
+            const transferCalldata = '0xa9059cbb' + SOMNEX_LP_TARGET.substring(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
+            const transferHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: tokenIn.address,
+                data: transferCalldata,
+                ...gasParams
+              }]
+            });
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Token Transferred to LP Pair! Tx: ${transferHash.substring(0, 16)}...`);
+
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 2/2: Executing Pair Swap for ~${dynamicAmountOut} ${tokenOut.symbol}...`);
+            const amount0Out = isSwapToSchwepe ? 0n : outWei;
+            const amount1Out = isSwapToSchwepe ? outWei : 0n;
+            const swapCalldata = encodePairSwapCalldata(amount0Out, amount1Out, wallet);
+
+            txHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: SOMNEX_LP_TARGET,
+                data: swapCalldata,
+                ...gasParams
+              }]
+            });
+          }
 
           addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Transaction broadcast! Waiting for Somnia EVM block receipt (${txHash.substring(0, 18)}...)...`);
 
@@ -700,7 +778,7 @@
           }
 
           const confirmedBlockStr = minedBlock ? `Block #${minedBlock.toLocaleString()}` : 'Somnia EVM Block';
-          addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap Transaction Confirmed in ${confirmedBlockStr}!`, { explorerUrl: `https://explorer.somnia.network/tx/${txHash}` });
+          addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap Confirmed in ${confirmedBlockStr}! Real SCHWEPE tokens delivered to wallet.`, { explorerUrl: `https://explorer.somnia.network/tx/${txHash}` });
           await fetchTokenBalances(wallet);
         } catch (txErr) {
           console.error('Real Pipeline Execution Error:', txErr);
