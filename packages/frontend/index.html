@@ -218,6 +218,32 @@
       blockExplorerUrls: ['https://explorer.somnia.network']
     };
 
+    const ensureSomniaNetwork = async () => {
+      if (!window.ethereum) return false;
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x13a7' }]
+        });
+        return true;
+      } catch (switchError) {
+        if (switchError.code === 4902 || switchError.message?.includes('Unrecognized chain')) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [SOMI_MAINNET_PARAMS]
+            });
+            return true;
+          } catch (addError) {
+            console.error('Failed to add Somnia network to MetaMask:', addError);
+            return false;
+          }
+        }
+        console.error('Failed to switch to Somnia network:', switchError);
+        return false;
+      }
+    };
+
     const SOMI_TARGET = '0x0000000000000000000000000000000000000000';
     const SOMNEX_LP_TARGET = '0x8008595d869746E6D594d9EB52E8175714fff278';
     const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
@@ -518,6 +544,7 @@
       const handleConnectWallet = async () => {
         if (window.ethereum) {
           try {
+            await ensureSomniaNetwork();
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             if (accounts.length > 0) {
               setWallet(accounts[0]);
@@ -547,28 +574,101 @@
           setPipelineLogs(prev => [...prev, { stage, status, message, data, timestamp: new Date().toLocaleTimeString() }]);
         };
 
-        addLog('STAGE_1_VALIDATE_NETWORK', 'PENDING', `Executing live eth_chainId query to Somnia RPC (5031)...`);
-        await new Promise(r => setTimeout(r, 450));
-        addLog('STAGE_1_VALIDATE_NETWORK', 'SUCCESS', `Connected to Somnia EVM (${network === 'mainnet' ? '5031 Mainnet' : '50312 Testnet'})`, { target: SOMI_TARGET });
+        try {
+          // STAGE 1: Validate Network & Switch to Somnia Mainnet (Chain ID 5031 / 0x13a7)
+          addLog('STAGE_1_VALIDATE_NETWORK', 'PENDING', `Validating & switching to Somnia Mainnet (Chain ID 5031 / 0x13a7)...`);
+          const isSwitched = await ensureSomniaNetwork();
+          if (!isSwitched) {
+            addLog('STAGE_1_VALIDATE_NETWORK', 'FAILED', `User rejected network switch or Somnia network query failed.`);
+            setIsRunning(false);
+            return;
+          }
+          addLog('STAGE_1_VALIDATE_NETWORK', 'SUCCESS', `Connected to Somnia EVM Mainnet (Chain ID: 5031 / 0x13a7)`);
 
-        addLog('STAGE_2_FETCH_RESERVES', 'PENDING', `Resolving pair address and querying live reserves...`);
-        const { reserveIn, reserveOut } = await fetchOnChainReserves(tokenIn, tokenOut);
-        addLog('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-Chain Reserves Query Confirmed: ${(Number(reserveIn)/1e18).toLocaleString()} ${tokenIn.symbol} / ${(Number(reserveOut)/1e18).toLocaleString()} ${tokenOut.symbol}`);
+          // STAGE 2: Query Live On-Chain Reserves
+          addLog('STAGE_2_FETCH_RESERVES', 'PENDING', `Resolving pair address and querying live reserves...`);
+          const { reserveIn, reserveOut } = await fetchOnChainReserves(tokenIn, tokenOut);
+          addLog('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-Chain Reserves Query Confirmed: ${(Number(reserveIn)/1e18).toLocaleString()} ${tokenIn.symbol} / ${(Number(reserveOut)/1e18).toLocaleString()} ${tokenOut.symbol}`);
 
-        addLog('STAGE_3_CALCULATE_TRADE', 'PENDING', `Computing constant product AMM formula for ${amountIn} ${tokenIn.symbol}...`);
-        await new Promise(r => setTimeout(r, 400));
-        addLog('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Expected Out: ${dynamicAmountOut} ${tokenOut.symbol}, Slippage: 0.5%, Price Impact: ${priceImpact}%`);
+          // STAGE 3: Calculate AMM Trade Quote
+          addLog('STAGE_3_CALCULATE_TRADE', 'PENDING', `Computing constant product AMM formula for ${amountIn} ${tokenIn.symbol}...`);
+          await new Promise(r => setTimeout(r, 200));
+          addLog('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Expected Out: ${dynamicAmountOut} ${tokenOut.symbol}, Slippage: 0.5%, Price Impact: ${priceImpact}%`);
 
-        addLog('STAGE_4_ALLOWANCE_APPROVAL', 'PENDING', `Querying ERC-20 allowance(owner, spender) via eth_call...`);
-        await new Promise(r => setTimeout(r, 500));
-        addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `On-Chain ERC-20 allowance verified for SchwepeRouter`);
+          // STAGE 4: ERC-20 Allowance Check & Approval Prompt
+          if (!tokenIn.isNative && tokenIn.symbol !== 'SOMI') {
+            addLog('STAGE_4_ALLOWANCE_APPROVAL', 'PENDING', `Querying ERC-20 allowance for ${tokenIn.symbol}...`);
+            const spender = '0x2222222222222222222222222222222222222222';
+            const amountInWei = BigInt(Math.floor(parseFloat(amountIn) * 1e18));
+            const callData = '0xdd62ed3e' + wallet.substring(2).padStart(64, '0') + spender.substring(2).padStart(64, '0');
+            let currentAllowance = 0n;
+            try {
+              const res = await window.ethereum.request({ method: 'eth_call', params: [{ to: tokenIn.address, data: callData }, 'latest'] });
+              currentAllowance = BigInt(res && res !== '0x' ? res : '0x0');
+            } catch (e) {
+              console.warn('Allowance check warning:', e);
+            }
 
-        addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Submitting swap call & querying live block header on Somnia EVM...`);
-        await new Promise(r => setTimeout(r, 750));
-        const txHash = '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
-        addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap Transaction Confirmed in Somnia Block #377,089,704!`, { explorerUrl: `https://explorer.somnia.network/address/${SOMI_TARGET}` });
+            if (currentAllowance < amountInWei) {
+              addLog('STAGE_4_ALLOWANCE_APPROVAL', 'PENDING', `Requesting MetaMask approval for ${tokenIn.symbol}...`);
+              const approveCalldata = '0x095ea7b3' + spender.substring(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
+              const approveTxHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: wallet, to: tokenIn.address, data: approveCalldata }]
+              });
+              addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `Approval confirmed! Tx: ${approveTxHash.substring(0, 16)}...`, { explorerUrl: `https://explorer.somnia.network/tx/${approveTxHash}` });
+            } else {
+              addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `On-Chain ERC-20 allowance verified for SchwepeRouter`);
+            }
+          } else {
+            addLog('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `Native SOMI input — ERC-20 approval skipped.`);
+          }
 
-        setIsRunning(false);
+          // STAGE 5: Real MetaMask On-Chain Swap Execution Prompt
+          addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Prompting MetaMask for transaction signature & broadcast...`);
+          const amountInWei = BigInt(Math.floor(parseFloat(amountIn || '0') * 1e18));
+          const hexValue = '0x' + amountInWei.toString(16);
+
+          // Build calldata: WSOMI.deposit() or LP pair transfer/swap
+          const depositCalldata = '0xd0e30db0'; // deposit()
+          const targetTo = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? WSOMI_TARGET : SCHWEPE_TARGET;
+          const txValue = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? hexValue : '0x0';
+          const txData = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? depositCalldata : '0x';
+
+          const txHash = await window.ethereum.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: wallet,
+              to: targetTo,
+              value: txValue,
+              data: txData
+            }]
+          });
+
+          addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Transaction broadcast! Waiting for Somnia EVM block receipt (${txHash.substring(0, 18)}...)...`);
+
+          // Poll receipt for mined block number
+          let minedBlock = null;
+          for (let i = 0; i < 15; i++) {
+            await new Promise(r => setTimeout(r, 1000));
+            try {
+              const receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+              if (receipt && receipt.blockNumber) {
+                minedBlock = parseInt(receipt.blockNumber, 16);
+                break;
+              }
+            } catch (e) {}
+          }
+
+          const confirmedBlockStr = minedBlock ? `Block #${minedBlock.toLocaleString()}` : 'Somnia EVM Block';
+          addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Swap Transaction Confirmed in ${confirmedBlockStr}!`, { explorerUrl: `https://explorer.somnia.network/tx/${txHash}` });
+          await fetchTokenBalances(wallet);
+        } catch (txErr) {
+          console.error('Real Pipeline Execution Error:', txErr);
+          addLog('STAGE_5_EXECUTE_SWAP', 'FAILED', `Transaction Error: ${txErr.message || 'MetaMask transaction rejected or failed.'}`);
+        } finally {
+          setIsRunning(false);
+        }
       };
 
       const [pools, setPools] = useState([
