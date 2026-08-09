@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SchwepeSwap 🖼️⚡ | Agentic Somnia EVM MasterChef Hub</title>
-  <link rel="icon" type="image/jpeg" href="/schwemes/schwepelogov1.jpg" />
-  <link rel="shortcut icon" type="image/jpeg" href="/schwemes/schwepelogov1.jpg" />
+  <link rel="icon" type="image/jpeg" href="/schwemes/theframe.jpg" />
+  <link rel="shortcut icon" type="image/jpeg" href="/schwemes/theframe.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Source+Code+Pro:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -321,7 +321,7 @@
       try {
         const wei = BigInt(weiHexOrString);
         if (wei === 0n) return '0.0000';
-        const num = parseFloat((wei / 10n**14n).toString()) / 10000;
+        const num = Number(wei) / 1e18;
         if (num >= 1000) return num.toLocaleString('en-US', { maximumFractionDigits: 4 });
         if (num >= 0.0001) return num.toFixed(4).replace(/\.?0+$/, '');
         return num.toFixed(6).replace(/\.?0+$/, '');
@@ -455,14 +455,8 @@
             return;
           }
 
-          const isNativeToken = (t) => t.isNative || t.symbol === 'SOMI' || t.address === '0x0000000000000000000000000000000000000000';
-          const isWsomiToken = (t) => t.symbol === 'WSOMI' || t.address.toLowerCase() === WSOMI_TARGET.toLowerCase();
-
-          const addrIn = isNativeToken(tokenIn) ? WSOMI_TARGET : tokenIn.address;
-          const addrOut = isNativeToken(tokenOut) ? WSOMI_TARGET : tokenOut.address;
-
-          if (addrIn.toLowerCase() === addrOut.toLowerCase() || (isNativeToken(tokenIn) && isWsomiToken(tokenOut)) || (isWsomiToken(tokenIn) && isNativeToken(tokenOut))) {
-            setDynamicAmountOut(val.toFixed(4));
+          if ((tokenIn.symbol === 'WSOMI' && tokenOut.symbol === 'SOMI') || (tokenIn.symbol === 'SOMI' && tokenOut.symbol === 'WSOMI')) {
+            setDynamicAmountOut(val >= 1000 ? val.toLocaleString('en-US', { maximumFractionDigits: 2 }) : val.toFixed(4));
             setPriceImpact('0.00');
             return;
           }
@@ -480,18 +474,13 @@
           }
           const outWei = numerator / denominator;
           
-          // Calculate price impact safely using string parsing
-          const resOutNum = parseFloat((reserveOut / 10n**12n).toString());
-          const resInNum = parseFloat((reserveIn / 10n**12n).toString());
-          const amtOutNum = parseFloat((outWei / 10n**12n).toString());
-          const amtInNum = parseFloat((amountInWei / 10n**12n).toString());
-
-          const midPrice = resInNum > 0 ? resOutNum / resInNum : 0;
-          const actualPrice = amtInNum > 0 ? amtOutNum / amtInNum : 0;
-          const impact = midPrice > 0 ? Math.abs((midPrice - actualPrice) / midPrice) * 100 : 0;
+          // Calculate price impact
+          const midPrice = Number(reserveOut.toString()) / Number(reserveIn.toString());
+          const actualPrice = Number(outWei.toString()) / Number(amountInWei.toString());
+          const impact = Math.abs((midPrice - actualPrice) / midPrice) * 100;
           const priceImpactVal = Math.min(Math.max(impact, 0.01), 99.9);
 
-          const outEth = parseFloat((outWei / 10n**14n).toString()) / 10000;
+          const outEth = Number(outWei.toString()) / 1e18;
           setDynamicAmountOut(outEth >= 1000 ? outEth.toLocaleString('en-US', { maximumFractionDigits: 2 }) : outEth.toFixed(4));
           setPriceImpact(priceImpactVal.toFixed(2));
         };
@@ -917,8 +906,8 @@
           <header className="glass-panel" style={{ padding: '18px 28px', marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <img 
-                src="/schwemes/schwepelogov1.jpg" 
-                alt="Schwepe Logo v1" 
+                src="/schwemes/theframe.jpg" 
+                alt="Schwepe The Frame" 
                 style={{ width: '46px', height: '46px', borderRadius: '14px', objectFit: 'cover', border: '2px solid rgba(236,72,153,0.6)', boxShadow: '0 0 20px rgba(236,72,153,0.5)' }} 
                 onError={(e) => { e.target.onerror = null; e.target.src = 'https://explorer.somnia.network/assets/favicon/favicon-32x32.png'; }}
               />

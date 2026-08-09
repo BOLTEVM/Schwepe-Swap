@@ -72,7 +72,7 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
             const denominator = (reserveIn * 1000n) + amountInWithFee;
             if (denominator !== 0n) {
               const outWei = numerator / denominator;
-              const outEth = parseFloat((outWei / 10n**14n).toString()) / 10000;
+              const outEth = Number(outWei) / 1e18;
               const rateVal = outEth / val;
               setAmountOut(outEth >= 1000 ? outEth.toLocaleString('en-US', { maximumFractionDigits: 2 }) : outEth.toFixed(4));
               setExchangeRate(rateVal >= 1000 ? rateVal.toLocaleString('en-US', { maximumFractionDigits: 2 }) : rateVal.toFixed(6));

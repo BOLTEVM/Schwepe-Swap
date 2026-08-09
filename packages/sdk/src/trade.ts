@@ -32,15 +32,9 @@ export function calculateSlippage(amountOut: bigint, slippageToleranceBps: numbe
 }
 
 export function calculatePriceImpact(amountIn: bigint, amountOut: bigint, reserveIn: bigint, reserveOut: bigint): number {
-  if (reserveIn === 0n || reserveOut === 0n || amountIn === 0n) return 0;
-  const resOutNum = parseFloat((reserveOut / 10n**12n).toString());
-  const resInNum = parseFloat((reserveIn / 10n**12n).toString());
-  const amtOutNum = parseFloat((amountOut / 10n**12n).toString());
-  const amtInNum = parseFloat((amountIn / 10n**12n).toString());
-  if (resInNum === 0 || amtInNum === 0) return 0;
-
-  const midPrice = resOutNum / resInNum;
-  const actualPrice = amtOutNum / amtInNum;
+  if (reserveIn === 0n || reserveOut === 0n) return 0;
+  const midPrice = Number(reserveOut.toString()) / Number(reserveIn.toString());
+  const actualPrice = Number(amountOut.toString()) / Number(amountIn.toString());
   const impact = Math.abs((midPrice - actualPrice) / midPrice) * 100;
   return Math.min(Math.max(impact, 0.01), 99.9);
 }
