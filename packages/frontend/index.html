@@ -321,7 +321,7 @@
       try {
         const wei = BigInt(weiHexOrString);
         if (wei === 0n) return '0.0000';
-        const num = Number(wei) / 1e18;
+        const num = parseFloat((wei / 10n**14n).toString()) / 10000;
         if (num >= 1000) return num.toLocaleString('en-US', { maximumFractionDigits: 4 });
         if (num >= 0.0001) return num.toFixed(4).replace(/\.?0+$/, '');
         return num.toFixed(6).replace(/\.?0+$/, '');
@@ -455,8 +455,14 @@
             return;
           }
 
-          if ((tokenIn.symbol === 'WSOMI' && tokenOut.symbol === 'SOMI') || (tokenIn.symbol === 'SOMI' && tokenOut.symbol === 'WSOMI')) {
-            setDynamicAmountOut(val >= 1000 ? val.toLocaleString('en-US', { maximumFractionDigits: 2 }) : val.toFixed(4));
+          const isNativeToken = (t) => t.isNative || t.symbol === 'SOMI' || t.address === '0x0000000000000000000000000000000000000000';
+          const isWsomiToken = (t) => t.symbol === 'WSOMI' || t.address.toLowerCase() === WSOMI_TARGET.toLowerCase();
+
+          const addrIn = isNativeToken(tokenIn) ? WSOMI_TARGET : tokenIn.address;
+          const addrOut = isNativeToken(tokenOut) ? WSOMI_TARGET : tokenOut.address;
+
+          if (addrIn.toLowerCase() === addrOut.toLowerCase() || (isNativeToken(tokenIn) && isWsomiToken(tokenOut)) || (isWsomiToken(tokenIn) && isNativeToken(tokenOut))) {
+            setDynamicAmountOut(val.toFixed(4));
             setPriceImpact('0.00');
             return;
           }
@@ -474,13 +480,18 @@
           }
           const outWei = numerator / denominator;
           
-          // Calculate price impact
-          const midPrice = Number(reserveOut) / Number(reserveIn);
-          const actualPrice = Number(outWei) / Number(amountInWei);
-          const impact = Math.abs((midPrice - actualPrice) / midPrice) * 100;
+          // Calculate price impact safely using string parsing
+          const resOutNum = parseFloat((reserveOut / 10n**12n).toString());
+          const resInNum = parseFloat((reserveIn / 10n**12n).toString());
+          const amtOutNum = parseFloat((outWei / 10n**12n).toString());
+          const amtInNum = parseFloat((amountInWei / 10n**12n).toString());
+
+          const midPrice = resInNum > 0 ? resOutNum / resInNum : 0;
+          const actualPrice = amtInNum > 0 ? amtOutNum / amtInNum : 0;
+          const impact = midPrice > 0 ? Math.abs((midPrice - actualPrice) / midPrice) * 100 : 0;
           const priceImpactVal = Math.min(Math.max(impact, 0.01), 99.9);
 
-          const outEth = Number(outWei) / 1e18;
+          const outEth = parseFloat((outWei / 10n**14n).toString()) / 10000;
           setDynamicAmountOut(outEth >= 1000 ? outEth.toLocaleString('en-US', { maximumFractionDigits: 2 }) : outEth.toFixed(4));
           setPriceImpact(priceImpactVal.toFixed(2));
         };
@@ -924,7 +935,6 @@
                 { id: 'farms', label: '🌾 MasterChef Hub' },
                 { id: 'agentic', label: '🤖 Agentic Keeper' },
                 { id: 'swap', label: '⇄ Swap' },
-                { id: 'unwrap', label: '🔄 Wrap / Unwrap' },
                 { id: 'liquidity', label: '💧 Liquidity' }
               ].map(tab => (
                 <button

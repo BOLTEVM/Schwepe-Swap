@@ -95,6 +95,14 @@ export class SchwepeWeb3Pipeline {
       const addrIn = isNativeIn ? wsomiAddress : this.tokenIn;
       const addrOut = isNativeOut ? wsomiAddress : this.tokenOut;
 
+      if (addrIn.toLowerCase() === addrOut.toLowerCase()) {
+        const walletBalFloat = parseFloat((walletBalance / 10n**14n).toString()) / 10000;
+        this.log('STAGE_2_FETCH_RESERVES', 'SUCCESS', `Direct 1:1 SOMI <-> WSOMI Wrap/Unwrap. Wallet SOMI: ${walletBalFloat.toFixed(4)}`, {
+          isDirectWrapUnwrap: true
+        });
+        return { reserveIn: 1_000_000n * 10n ** 18n, reserveOut: 1_000_000n * 10n ** 18n };
+      }
+
       // 1. Fetch pair address from factory using getPair(address,address) selector: 0xe6a43905
       const getPairSelector = '0xe6a43905';
       const getPairCallData = getPairSelector + 
@@ -139,7 +147,7 @@ export class SchwepeWeb3Pipeline {
         }
       }
 
-      const formattedWalletBal = (Number(walletBalance / 10n**14n) / 10000).toFixed(4);
+      const formattedWalletBal = (parseFloat((walletBalance / 10n**14n).toString()) / 10000).toFixed(4);
 
       this.log('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-chain reserves queried successfully. Wallet Native SOMI: ${formattedWalletBal}`, {
         pairAddress,
@@ -159,13 +167,29 @@ export class SchwepeWeb3Pipeline {
   public async stageCalculateTrade(reserveIn: bigint, reserveOut: bigint): Promise<{ amountOut: bigint; minAmountOut: bigint; priceImpact: number }> {
     this.log('STAGE_3_CALCULATE_TRADE', 'PENDING', `Computing constant product AMM formula for ${this.amountIn} tokens`);
 
+    const wsomiAddress = SCHWEPESWAP_ADDRESSES[this.chainId as keyof typeof SCHWEPESWAP_ADDRESSES]?.wsomi || '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
+    const isNativeIn = this.tokenIn.toLowerCase() === '0x0000000000000000000000000000000000000000' || this.tokenIn.toLowerCase() === 'somi';
+    const isNativeOut = this.tokenOut.toLowerCase() === '0x0000000000000000000000000000000000000000' || this.tokenOut.toLowerCase() === 'somi';
+    const isWsomiIn = this.tokenIn.toLowerCase() === 'wsomi' || this.tokenIn.toLowerCase() === wsomiAddress.toLowerCase();
+    const isWsomiOut = this.tokenOut.toLowerCase() === 'wsomi' || this.tokenOut.toLowerCase() === wsomiAddress.toLowerCase();
+
+    if ((isNativeIn && isWsomiOut) || (isWsomiIn && isNativeOut) || (isNativeIn && isNativeOut) || (isWsomiIn && isWsomiIn)) {
+      const amountInBig = BigInt(Math.floor(parseFloat(this.amountIn) * 1e18));
+      this.log('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Direct 1:1 Wrap/Unwrap Rate (1.0000), Price Impact: 0.00%`, {
+        amountOut: amountInBig.toString(),
+        minAmountOut: amountInBig.toString(),
+        priceImpact: 0
+      });
+      return { amountOut: amountInBig, minAmountOut: amountInBig, priceImpact: 0 };
+    }
+
     const amountInBig = BigInt(Math.floor(parseFloat(this.amountIn) * 1e18));
     const amountOut = getAmountOut(amountInBig, reserveIn, reserveOut);
     const minAmountOut = calculateSlippage(amountOut, this.slippageBps);
     const priceImpact = calculatePriceImpact(amountInBig, amountOut, reserveIn, reserveOut);
 
-    const formattedOut = (Number(amountOut / 10n**14n) / 10000).toFixed(4);
-    const formattedMinOut = (Number(minAmountOut / 10n**14n) / 10000).toFixed(4);
+    const formattedOut = (parseFloat((amountOut / 10n**14n).toString()) / 10000).toFixed(4);
+    const formattedMinOut = (parseFloat((minAmountOut / 10n**14n).toString()) / 10000).toFixed(4);
 
     this.log('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Expected Out: ${formattedOut}, Min Out: ${formattedMinOut}, Price Impact: ${priceImpact.toFixed(2)}%`, {
       amountOut: amountOut.toString(),
