@@ -78,7 +78,17 @@ export default function App() {
               return null;
             };
 
-            if (isNative) {
+            const isWsomiIn = tokenInAddr.toLowerCase() === wsomiAddress.toLowerCase() || options?.tokenIn === 'wsomi';
+            const isSomiOut = options?.tokenOut === 'somi' || options?.tokenOut === '0x0000000000000000000000000000000000000000';
+
+            if (isWsomiIn && isSomiOut) {
+              const withdrawCalldata = '0x2e1a7d4d' + amountInWei.toString(16).padStart(64, '0');
+              realTxHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: walletAddress, to: wsomiAddress, data: withdrawCalldata, ...gasParams }]
+              });
+              await waitForReceipt(realTxHash);
+            } else if (isNative) {
               // Wrap native SOMI -> WSOMI
               const dHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
@@ -121,6 +131,16 @@ export default function App() {
                 method: 'eth_sendTransaction',
                 params: [{ from: walletAddress, to: pairAddress, data: swapCalldata, ...gasParams }]
               });
+
+              if (isSomiOut) {
+                await waitForReceipt(realTxHash);
+                const withdrawCalldata = '0x2e1a7d4d' + minOutWei.toString(16).padStart(64, '0');
+                const uHash = await window.ethereum.request({
+                  method: 'eth_sendTransaction',
+                  params: [{ from: walletAddress, to: wsomiAddress, data: withdrawCalldata, ...gasParams }]
+                });
+                await waitForReceipt(uHash);
+              }
             }
           } catch (e) {
             console.warn('MetaMask transaction cancelled or failed:', e);

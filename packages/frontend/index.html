@@ -455,6 +455,12 @@
             return;
           }
 
+          if ((tokenIn.symbol === 'WSOMI' && tokenOut.symbol === 'SOMI') || (tokenIn.symbol === 'SOMI' && tokenOut.symbol === 'WSOMI')) {
+            setDynamicAmountOut(val >= 1000 ? val.toLocaleString('en-US', { maximumFractionDigits: 2 }) : val.toFixed(4));
+            setPriceImpact('0.00');
+            return;
+          }
+
           const { reserveIn, reserveOut } = await fetchOnChainReserves(tokenIn, tokenOut);
           const amountInWei = BigInt(Math.floor(val * 1e18));
           const amountInWithFee = amountInWei * 997n;
@@ -689,6 +695,8 @@
           const hexValue = '0x' + amountInWei.toString(16);
           const gasParams = await fetchSomniaGasParams();
 
+          const isWsomiToSomiUnwrap = (tokenIn.symbol === 'WSOMI' || tokenIn.address.toLowerCase() === WSOMI_TARGET.toLowerCase()) && (tokenOut.symbol === 'SOMI' || tokenOut.isNative);
+          const isSomiToWsomiWrap = (tokenIn.symbol === 'SOMI' || tokenIn.isNative) && (tokenOut.symbol === 'WSOMI' || tokenOut.address.toLowerCase() === WSOMI_TARGET.toLowerCase());
           const isNativeSomi = tokenIn.isNative || tokenIn.symbol === 'SOMI';
           const isSwapToSchwepe = tokenOut.symbol === 'SCHWEPE' || tokenOut.address.toLowerCase() === SCHWEPE_TARGET.toLowerCase();
 
@@ -700,7 +708,39 @@
 
           let txHash = null;
 
-          if (isNativeSomi) {
+          if (isWsomiToSomiUnwrap) {
+            // Direct 1:1 WSOMI -> Native SOMI Unwrap (WSOMI.withdraw)
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Unwrapping ${amountIn} WSOMI to Native SOMI via WSOMI.withdraw()...`);
+            const withdrawCalldata = '0x2e1a7d4d' + amountInWei.toString(16).padStart(64, '0');
+            txHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: WSOMI_TARGET,
+                data: withdrawCalldata,
+                ...gasParams
+              }]
+            });
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for unwrap block confirmation (${txHash.substring(0, 14)}...)...`);
+            await waitForReceipt(txHash);
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Successfully Unwrapped ${amountIn} WSOMI into Native SOMI!`);
+          } else if (isSomiToWsomiWrap) {
+            // Direct 1:1 Native SOMI -> WSOMI Wrap (WSOMI.deposit)
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Wrapping ${amountIn} SOMI to WSOMI via WSOMI.deposit()...`);
+            txHash = await window.ethereum.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: wallet,
+                to: WSOMI_TARGET,
+                value: hexValue,
+                data: '0xd0e30db0', // deposit()
+                ...gasParams
+              }]
+            });
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for wrap block confirmation (${txHash.substring(0, 14)}...)...`);
+            await waitForReceipt(txHash);
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Successfully Wrapped ${amountIn} Native SOMI into WSOMI!`);
+          } else if (isNativeSomi) {
             // Step 1: Deposit native SOMI -> WSOMI
             addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 1/3: Wrapping ${amountIn} SOMI into WSOMI...`);
             const depositHash = await window.ethereum.request({
@@ -733,9 +773,9 @@
             await waitForReceipt(transferHash);
             addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `WSOMI Transferred to LP Pair!`);
 
-            // Step 3: Call SchwepePair.swap(0, minOutWei, recipientAddress, "") to receive SCHWEPE tokens!
+            // Step 3: Call SchwepePair.swap(0, minOutWei, recipientAddress, "")
             addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 3/3: Executing Pair Swap for ~${dynamicAmountOut} SCHWEPE...`);
-            const minOutWei = (outWei * 995n) / 1000n; // 0.5% slippage safety bound to guarantee SomnexAMM K invariant
+            const minOutWei = (outWei * 995n) / 1000n; // 0.5% slippage safety bound
             const amount0Out = isSwapToSchwepe ? 0n : minOutWei;
             const amount1Out = isSwapToSchwepe ? minOutWei : 0n;
             const swapCalldata = encodePairSwapCalldata(amount0Out, amount1Out, wallet);
@@ -781,6 +821,27 @@
                 ...gasParams
               }]
             });
+
+            // If target token is Native SOMI, automatically unwrap output WSOMI -> Native SOMI!
+            if (tokenOut.symbol === 'SOMI' || tokenOut.isNative) {
+              addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for pair swap block confirmation...`);
+              await waitForReceipt(txHash);
+
+              addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Auto-Unwrapping output WSOMI to Native SOMI...`);
+              const withdrawCalldata = '0x2e1a7d4d' + minOutWei.toString(16).padStart(64, '0');
+              const unwrapHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{
+                  from: wallet,
+                  to: WSOMI_TARGET,
+                  data: withdrawCalldata,
+                  ...gasParams
+                }]
+              });
+              addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for auto-unwrap block confirmation (${unwrapHash.substring(0, 14)}...)...`);
+              await waitForReceipt(unwrapHash);
+              addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Auto-Unwrapped WSOMI into Native SOMI!`);
+            }
           }
 
           addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Transaction broadcast! Waiting for Somnia EVM block receipt (${txHash.substring(0, 18)}...)...`);

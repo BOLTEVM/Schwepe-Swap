@@ -229,7 +229,9 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
 
       {/* Swap Action Button */}
       <button onClick={handleSwapClick} className="btn-gradient" style={{ width: '100%', fontSize: '1.1rem', padding: '14px' }}>
-        {walletAddress ? 'Swap' : 'Connect Wallet'}
+        {!walletAddress ? 'Connect Wallet' :
+         (tokenIn.symbol === 'WSOMI' && tokenOut.symbol === 'SOMI') ? 'Unwrap WSOMI' :
+         (tokenIn.symbol === 'SOMI' && tokenOut.symbol === 'WSOMI') ? 'Wrap SOMI' : 'Swap'}
       </button>
 
     </div>
