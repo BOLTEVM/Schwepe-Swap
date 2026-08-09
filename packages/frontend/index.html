@@ -283,6 +283,19 @@
       return selector + p0 + p1 + p2 + offset + len;
     };
 
+    const waitForReceipt = async (txHash) => {
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 800));
+        try {
+          const receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+          if (receipt && receipt.blockNumber) {
+            return receipt;
+          }
+        } catch (e) {}
+      }
+      return null;
+    };
+
     const SOMI_TARGET = '0x0000000000000000000000000000000000000000';
     const SOMNEX_LP_TARGET = '0x8008595d869746E6D594d9EB52E8175714fff278';
     const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
@@ -700,7 +713,9 @@
                 ...gasParams
               }]
             });
-            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `SOMI Wrapped to WSOMI! Tx: ${depositHash.substring(0, 16)}...`);
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for WSOMI wrap block confirmation (${depositHash.substring(0, 14)}...)...`);
+            await waitForReceipt(depositHash);
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `SOMI Wrapped to WSOMI!`);
 
             // Step 2: Transfer WSOMI to Somnex LP pair contract
             addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 2/3: Transferring WSOMI liquidity to Somnex LP Pair (${SOMNEX_LP_TARGET.substring(0, 10)}...)...`);
@@ -714,12 +729,15 @@
                 ...gasParams
               }]
             });
-            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `WSOMI Transferred to Pair! Tx: ${transferHash.substring(0, 16)}...`);
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for liquidity transfer block confirmation (${transferHash.substring(0, 14)}...)...`);
+            await waitForReceipt(transferHash);
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `WSOMI Transferred to LP Pair!`);
 
-            // Step 3: Call SchwepePair.swap(0, outWei, recipientAddress, "") to receive SCHWEPE tokens!
-            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 3/3: Executing Pair Swap to deliver ~${dynamicAmountOut} SCHWEPE to your wallet...`);
-            const amount0Out = isSwapToSchwepe ? 0n : outWei;
-            const amount1Out = isSwapToSchwepe ? outWei : 0n;
+            // Step 3: Call SchwepePair.swap(0, minOutWei, recipientAddress, "") to receive SCHWEPE tokens!
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 3/3: Executing Pair Swap for ~${dynamicAmountOut} SCHWEPE...`);
+            const minOutWei = (outWei * 995n) / 1000n; // 0.5% slippage safety bound to guarantee SomnexAMM K invariant
+            const amount0Out = isSwapToSchwepe ? 0n : minOutWei;
+            const amount1Out = isSwapToSchwepe ? minOutWei : 0n;
             const swapCalldata = encodePairSwapCalldata(amount0Out, amount1Out, wallet);
 
             txHash = await window.ethereum.request({
@@ -744,11 +762,14 @@
                 ...gasParams
               }]
             });
-            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Token Transferred to LP Pair! Tx: ${transferHash.substring(0, 16)}...`);
+            addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Waiting for token transfer block confirmation (${transferHash.substring(0, 14)}...)...`);
+            await waitForReceipt(transferHash);
+            addLog('STAGE_5_EXECUTE_SWAP', 'SUCCESS', `Token Transferred to LP Pair!`);
 
             addLog('STAGE_5_EXECUTE_SWAP', 'PENDING', `Step 2/2: Executing Pair Swap for ~${dynamicAmountOut} ${tokenOut.symbol}...`);
-            const amount0Out = isSwapToSchwepe ? 0n : outWei;
-            const amount1Out = isSwapToSchwepe ? outWei : 0n;
+            const minOutWei = (outWei * 995n) / 1000n; // 0.5% slippage safety bound
+            const amount0Out = isSwapToSchwepe ? 0n : minOutWei;
+            const amount1Out = isSwapToSchwepe ? minOutWei : 0n;
             const swapCalldata = encodePairSwapCalldata(amount0Out, amount1Out, wallet);
 
             txHash = await window.ethereum.request({

@@ -59,6 +59,7 @@ export default function App() {
             const amountInWei = BigInt(Math.floor(parseFloat(options?.amountIn || '100') * 1e18));
             const isNative = tokenInAddr === '0x0000000000000000000000000000000000000000' || options?.tokenIn === 'somi';
             const outWei = BigInt(minAmountOut || '0');
+            const minOutWei = (outWei * 995n) / 1000n; // 0.5% slippage safety bound to satisfy SomnexAMM K invariant
 
             const gasParams = {
               gas: '0x30d40',
@@ -66,21 +67,36 @@ export default function App() {
               maxFeePerGas: '0x2cb417800'
             };
 
+            const waitForReceipt = async (txHash) => {
+              for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 800));
+                try {
+                  const receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+                  if (receipt && receipt.blockNumber) return receipt;
+                } catch (e) {}
+              }
+              return null;
+            };
+
             if (isNative) {
               // Wrap native SOMI -> WSOMI
-              await window.ethereum.request({
+              const dHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{ from: walletAddress, to: wsomiAddress, value: '0x' + amountInWei.toString(16), data: '0xd0e30db0', ...gasParams }]
               });
+              await waitForReceipt(dHash);
+
               // Transfer WSOMI to Somnex LP pair
               const transferCalldata = '0xa9059cbb' + pairAddress.substring(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
-              await window.ethereum.request({
+              const tHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [{ from: walletAddress, to: wsomiAddress, data: transferCalldata, ...gasParams }]
               });
-              // Execute Pair swap(0, outWei, user, "0x")
+              await waitForReceipt(tHash);
+
+              // Execute Pair swap(0, minOutWei, user, "0x")
               const p0 = '0000000000000000000000000000000000000000000000000000000000000000';
-              const p1 = outWei.toString(16).padStart(64, '0');
+              const p1 = minOutWei.toString(16).padStart(64, '0');
               const p2 = walletAddress.toLowerCase().replace('0x', '').padStart(64, '0');
               const swapCalldata = '0x022c0d9f' + p0 + p1 + p2 + (128).toString(16).padStart(64, '0') + (0).toString(16).padStart(64, '0');
 
@@ -89,8 +105,15 @@ export default function App() {
                 params: [{ from: walletAddress, to: pairAddress, data: swapCalldata, ...gasParams }]
               });
             } else {
+              const transferCalldata = '0xa9059cbb' + pairAddress.substring(2).padStart(64, '0') + amountInWei.toString(16).padStart(64, '0');
+              const tHash = await window.ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [{ from: walletAddress, to: tokenInAddr, data: transferCalldata, ...gasParams }]
+              });
+              await waitForReceipt(tHash);
+
               const p0 = '0000000000000000000000000000000000000000000000000000000000000000';
-              const p1 = outWei.toString(16).padStart(64, '0');
+              const p1 = minOutWei.toString(16).padStart(64, '0');
               const p2 = walletAddress.toLowerCase().replace('0x', '').padStart(64, '0');
               const swapCalldata = '0x022c0d9f' + p0 + p1 + p2 + (128).toString(16).padStart(64, '0') + (0).toString(16).padStart(64, '0');
 
