@@ -89,8 +89,11 @@ export class SchwepeWeb3Pipeline {
       if (!factoryAddress) throw new Error(`Factory address not found for chain ID ${this.chainId}`);
 
       // Handle native SOMI wrapping to WSOMI for AMM routing lookup
-      const addrIn = this.tokenIn.toLowerCase() === SOMIA_SOMI_TOKEN_ADDRESS.toLowerCase() ? wsomiAddress : this.tokenIn;
-      const addrOut = this.tokenOut.toLowerCase() === SOMIA_SOMI_TOKEN_ADDRESS.toLowerCase() ? wsomiAddress : this.tokenOut;
+      const isNativeIn = this.tokenIn.toLowerCase() === '0x0000000000000000000000000000000000000000' || this.tokenIn.toLowerCase() === 'somi' || this.tokenIn.toLowerCase() === SOMIA_SOMI_TOKEN_ADDRESS.toLowerCase();
+      const isNativeOut = this.tokenOut.toLowerCase() === '0x0000000000000000000000000000000000000000' || this.tokenOut.toLowerCase() === 'somi' || this.tokenOut.toLowerCase() === SOMIA_SOMI_TOKEN_ADDRESS.toLowerCase();
+
+      const addrIn = isNativeIn ? wsomiAddress : this.tokenIn;
+      const addrOut = isNativeOut ? wsomiAddress : this.tokenOut;
 
       // 1. Fetch pair address from factory using getPair(address,address) selector: 0xe6a43905
       const getPairSelector = '0xe6a43905';
@@ -178,6 +181,13 @@ export class SchwepeWeb3Pipeline {
     this.log('STAGE_4_ALLOWANCE_APPROVAL', 'PENDING', `Querying ERC-20 allowance(owner, spender) via eth_call for wallet ${this.walletAddress}`);
 
     try {
+      if (this.tokenIn.toLowerCase() === '0x0000000000000000000000000000000000000000' || this.tokenIn.toLowerCase() === 'somi') {
+        this.log('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `Native SOMI token input — ERC-20 approval skipped.`, {
+          isNative: true
+        });
+        return true;
+      }
+
       const routerSpender = '0x2222222222222222222222222222222222222222';
       // allowance selector 0xdd62ed3e + padded owner + padded spender
       const callData = '0xdd62ed3e' + 
@@ -185,7 +195,7 @@ export class SchwepeWeb3Pipeline {
         routerSpender.substring(2).padStart(64, '0');
 
       const callResult = await this.rpcClient.call(this.tokenIn, callData).catch(() => '0x0000000000000000000000000000000000000000000000000000000000000000');
-      const allowanceVal = BigInt(callResult || '0x0');
+      const allowanceVal = BigInt(callResult && callResult !== '0x' ? callResult : '0x0');
 
       this.log('STAGE_4_ALLOWANCE_APPROVAL', 'SUCCESS', `On-Chain allowance query returned ${allowanceVal.toString()} Wei. Approval verified.`, {
         targetContract: this.tokenIn,
@@ -247,8 +257,8 @@ export class SchwepeWeb3Pipeline {
 const pipeline = new SchwepeWeb3Pipeline({
   chainId: 5031,
   walletAddress: '0xdd10620866c4f586b1213d3818811faf3718fce3',
-  tokenIn: '0xdd10620866c4f586b1213d3818811faf3718fce3', // $SOMI Token Target
-  tokenOut: '0x046ede9564a72571df6f5e44d0405360c0f4dcab', // WSOMI (paired with SOMI in Somnex LP)
+  tokenIn: '0x0000000000000000000000000000000000000000', // Native SOMI
+  tokenOut: '0xdd10620866c4f586b1213d3818811faf3718fce3', // SCHWEPE Token
   amountIn: '100',
   slippageBps: 50
 });

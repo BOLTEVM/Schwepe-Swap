@@ -218,10 +218,10 @@
       blockExplorerUrls: ['https://explorer.somnia.network']
     };
 
-    const SOMI_TARGET = '0xdd10620866c4f586b1213d3818811faf3718fce3';
+    const SOMI_TARGET = '0x0000000000000000000000000000000000000000';
     const SOMNEX_LP_TARGET = '0x8008595d869746E6D594d9EB52E8175714fff278';
     const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
-    const SCHWEPE_TARGET = '0x4444444444444444444444444444444444444444';
+    const SCHWEPE_TARGET = '0xdd10620866c4f586b1213d3818811faf3718fce3';
 
     const BRAND_MEMES = [
       { id: 'neo', title: 'Neoschwepe Matrix', image: '/schwemes/Neoschwepe.jpg', subtitle: 'Cybernetic liquidity sub-second finality' },
@@ -351,10 +351,10 @@
           console.error('Error fetching on-chain reserves:', e);
         }
 
-        // Fallback mock reserves based on symbols
+        // Fallback mock reserves based on symbols (somnex LP 2,227 WSOMI / 656.9M SCHWEPE)
         const mockReserves = {
-          'SOMI-SCHWEPE': { in: 1000000n * 10n**18n, out: 2485200n * 10n**18n },
-          'SCHWEPE-SOMI': { in: 2485200n * 10n**18n, out: 1000000n * 10n**18n },
+          'SOMI-SCHWEPE': { in: 2227n * 10n**18n, out: 656948787n * 10n**18n },
+          'SCHWEPE-SOMI': { in: 656948787n * 10n**18n, out: 2227n * 10n**18n },
           'SOMI-WSOMI': { in: 1000000n * 10n**18n, out: 1000000n * 10n**18n },
           'WSOMI-SOMI': { in: 1000000n * 10n**18n, out: 1000000n * 10n**18n },
           'SOMI-USDT': { in: 1000000n * 10n**18n, out: 4580000n * 10n**18n },
@@ -364,7 +364,7 @@
         if (mockReserves[key]) {
           return mockReserves[key];
         }
-        return { reserveIn: 1000000n * 10n**18n, reserveOut: 2485200n * 10n**18n };
+        return { in: 2227n * 10n**18n, out: 656948787n * 10n**18n };
       };
 
       // Dynamic AMM Constant Product Quote Calculation
@@ -396,7 +396,8 @@
           const impact = Math.abs((midPrice - actualPrice) / midPrice) * 100;
           const priceImpactVal = Math.min(Math.max(impact, 0.01), 99.9);
 
-          setDynamicAmountOut((Number(outWei) / 1e18).toFixed(4));
+          const outEth = Number(outWei) / 1e18;
+          setDynamicAmountOut(outEth >= 1000 ? outEth.toLocaleString('en-US', { maximumFractionDigits: 2 }) : outEth.toFixed(4));
           setPriceImpact(priceImpactVal.toFixed(2));
         };
 

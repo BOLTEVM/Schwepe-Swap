@@ -22,10 +22,10 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
       const rpcUrl = 'https://api.infra.mainnet.somnia.network/';
       const factory = '0xafd71143fb155058e96527b07695d93223747ed1';
       const wsomi = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
-      const somiToken = '0xdd10620866c4f586b1213d3818811faf3718fce3';
 
-      const addrIn = (tokenIn.address.toLowerCase() === somiToken || tokenIn.isNative) ? wsomi : tokenIn.address;
-      const addrOut = (tokenOut.address.toLowerCase() === somiToken || tokenOut.isNative) ? wsomi : tokenOut.address;
+      const isNativeToken = (t) => t.isNative || t.symbol === 'SOMI' || t.address === '0x0000000000000000000000000000000000000000';
+      const addrIn = isNativeToken(tokenIn) ? wsomi : tokenIn.address;
+      const addrOut = isNativeToken(tokenOut) ? wsomi : tokenOut.address;
 
       if (addrIn.toLowerCase() === addrOut.toLowerCase()) {
         setAmountOut(val.toFixed(4));
@@ -72,8 +72,10 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
             const denominator = (reserveIn * 1000n) + amountInWithFee;
             if (denominator !== 0n) {
               const outWei = numerator / denominator;
-              setAmountOut((Number(outWei) / 1e18).toFixed(4));
-              setExchangeRate((Number(outWei) / Number(amountInWei)).toFixed(4));
+              const outEth = Number(outWei) / 1e18;
+              const rateVal = outEth / val;
+              setAmountOut(outEth >= 1000 ? outEth.toLocaleString('en-US', { maximumFractionDigits: 2 }) : outEth.toFixed(4));
+              setExchangeRate(rateVal >= 1000 ? rateVal.toLocaleString('en-US', { maximumFractionDigits: 2 }) : rateVal.toFixed(6));
               return;
             }
           }
@@ -84,17 +86,18 @@ export default function SwapCard({ walletAddress, onRunPipeline }) {
 
       // Fallback calculations based on mock symbols if RPC call fails or pair doesn't exist
       const mockRates = {
-        'SOMI-SCHWEPE': 2.4852,
-        'SCHWEPE-SOMI': 0.4024,
+        'SOMI-SCHWEPE': 294895.0,
+        'SCHWEPE-SOMI': 0.00000339,
         'SOMI-WSOMI': 1.0000,
         'WSOMI-SOMI': 1.0000,
         'SOMI-USDT': 4.5800,
         'SCHWEPE-USDC': 0.8901
       };
       const key = `${tokenIn.symbol}-${tokenOut.symbol}`;
-      const rate = mockRates[key] || 2.4852;
-      setAmountOut((val * rate).toFixed(4));
-      setExchangeRate(rate.toFixed(4));
+      const rate = mockRates[key] || 294895.0;
+      const calcOut = val * rate;
+      setAmountOut(calcOut >= 1000 ? calcOut.toLocaleString('en-US', { maximumFractionDigits: 2 }) : calcOut.toFixed(4));
+      setExchangeRate(rate >= 1000 ? rate.toLocaleString('en-US', { maximumFractionDigits: 2 }) : rate.toFixed(6));
     }
 
     updateQuote();
