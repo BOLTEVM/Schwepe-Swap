@@ -244,6 +244,35 @@
       }
     };
 
+    const fetchSomniaGasParams = async () => {
+      const defaultParams = {
+        gas: '0x30d40', // 200,000 gas limit (generous for deposit/swap)
+        maxPriorityFeePerGas: '0x165a0bc00', // 6 Gwei priority fee
+        maxFeePerGas: '0x2cb417800' // 12 Gwei max fee (well above Somnia's 6 Gwei base fee)
+      };
+      try {
+        const res = await fetch('https://api.infra.mainnet.somnia.network/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_gasPrice', params: [] })
+        });
+        const json = await res.json();
+        if (json.result && json.result !== '0x') {
+          const liveGasPrice = BigInt(json.result);
+          const priorityWei = liveGasPrice > 6000000000n ? liveGasPrice : 6000000000n;
+          const maxFeeWei = priorityWei * 2n;
+          return {
+            gas: '0x30d40',
+            maxPriorityFeePerGas: '0x' + priorityWei.toString(16),
+            maxFeePerGas: '0x' + maxFeeWei.toString(16)
+          };
+        }
+      } catch (e) {
+        console.warn('Gas price RPC query fallback:', e);
+      }
+      return defaultParams;
+    };
+
     const SOMI_TARGET = '0x0000000000000000000000000000000000000000';
     const SOMNEX_LP_TARGET = '0x8008595d869746E6D594d9EB52E8175714fff278';
     const WSOMI_TARGET = '0x046ede9564a72571df6f5e44d0405360c0f4dcab';
@@ -642,6 +671,8 @@
           const txValue = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? hexValue : '0x0';
           const txData = (tokenIn.isNative || tokenIn.symbol === 'SOMI') ? depositCalldata : '0x';
 
+          const gasParams = await fetchSomniaGasParams();
+
           const txHash = await window.ethereum.request({
             method: 'eth_sendTransaction',
             params: [{
@@ -649,9 +680,7 @@
               to: targetTo,
               value: txValue,
               data: txData,
-              gas: '0x186a0', // 100,000 gas limit (prevents 21,000,000 gas default 39 SOMI fee error)
-              maxPriorityFeePerGas: '0x3b9aca00', // 1 Gwei
-              maxFeePerGas: '0x77359400' // 2 Gwei
+              ...gasParams
             }]
           });
 

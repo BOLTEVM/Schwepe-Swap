@@ -67,9 +67,9 @@ export default function App() {
                 to: targetTo,
                 value: txValue,
                 data: txData,
-                gas: '0x186a0', // 100,000 gas limit (prevents 21M gas default 39 SOMI fee error)
-                maxPriorityFeePerGas: '0x3b9aca00', // 1 Gwei
-                maxFeePerGas: '0x77359400' // 2 Gwei
+                gas: '0x30d40', // 200,000 gas limit
+                maxPriorityFeePerGas: '0x165a0bc00', // 6 Gwei priority fee
+                maxFeePerGas: '0x2cb417800' // 12 Gwei max fee (well above Somnia 6 Gwei base fee)
               }]
             });
           } catch (e) {
