@@ -139,7 +139,7 @@ export class SchwepeWeb3Pipeline {
         }
       }
 
-      const formattedWalletBal = (Number(walletBalance) / 1e18).toFixed(4);
+      const formattedWalletBal = (Number(walletBalance / 10n**14n) / 10000).toFixed(4);
 
       this.log('STAGE_2_FETCH_RESERVES', 'SUCCESS', `On-chain reserves queried successfully. Wallet Native SOMI: ${formattedWalletBal}`, {
         pairAddress,
@@ -164,8 +164,8 @@ export class SchwepeWeb3Pipeline {
     const minAmountOut = calculateSlippage(amountOut, this.slippageBps);
     const priceImpact = calculatePriceImpact(amountInBig, amountOut, reserveIn, reserveOut);
 
-    const formattedOut = (Number(amountOut) / 1e18).toFixed(4);
-    const formattedMinOut = (Number(minAmountOut) / 1e18).toFixed(4);
+    const formattedOut = (Number(amountOut / 10n**14n) / 10000).toFixed(4);
+    const formattedMinOut = (Number(minAmountOut / 10n**14n) / 10000).toFixed(4);
 
     this.log('STAGE_3_CALCULATE_TRADE', 'SUCCESS', `Expected Out: ${formattedOut}, Min Out: ${formattedMinOut}, Price Impact: ${priceImpact.toFixed(2)}%`, {
       amountOut: amountOut.toString(),

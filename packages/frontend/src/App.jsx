@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Navbar from './components/Navbar';
 import SwapCard from './components/SwapCard';
+import WrapUnwrapCard from './components/WrapUnwrapCard';
 import LiquidityCard from './components/LiquidityCard';
 import FarmingCard from './components/FarmingCard';
 import PipelineCard from './components/PipelineCard';
@@ -188,6 +189,19 @@ export default function App() {
       <main style={{ flex: 1, padding: '0 24px 40px 24px' }}>
         {activeTab === 'swap' && (
           <SwapCard walletAddress={walletAddress} onRunPipeline={runWeb3Pipeline} />
+        )}
+
+        {activeTab === 'unwrap' && (
+          <WrapUnwrapCard
+            walletAddress={walletAddress}
+            nativeBalance="0.2940"
+            wsomiBalance="3.3596"
+            onRunUnwrap={(mode, amt) => runWeb3Pipeline({
+              tokenIn: mode === 'unwrap' ? 'wsomi' : 'somi',
+              tokenOut: mode === 'unwrap' ? 'somi' : 'wsomi',
+              amountIn: amt
+            })}
+          />
         )}
 
         {activeTab === 'liquidity' && <LiquidityCard />}

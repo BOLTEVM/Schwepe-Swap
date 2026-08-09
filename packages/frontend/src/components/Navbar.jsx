@@ -39,7 +39,7 @@ export default function Navbar({ activeTab, setActiveTab, network, setNetwork, w
 
         {/* Navigation Tabs */}
         <nav style={{ display: 'flex', gap: '8px', background: 'rgba(15, 23, 42, 0.6)', padding: '6px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {['swap', 'liquidity', 'farms', 'pipeline'].map((tab) => (
+          {['swap', 'unwrap', 'liquidity', 'farms', 'pipeline'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -55,7 +55,7 @@ export default function Navbar({ activeTab, setActiveTab, network, setNetwork, w
                 transition: 'all 0.2s ease'
               }}
             >
-              {tab === 'pipeline' ? '⚡ Web3 Pipeline' : tab}
+              {tab === 'pipeline' ? '⚡ Web3 Pipeline' : tab === 'unwrap' ? '🔄 Wrap / Unwrap' : tab}
             </button>
           ))}
         </nav>
