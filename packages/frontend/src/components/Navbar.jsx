@@ -16,17 +16,11 @@ export default function Navbar({ activeTab, setActiveTab, network, setNetwork, w
         
         {/* Brand Logo & Name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #9333ea, #06b6d4)',
-            padding: '10px',
-            borderRadius: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(147, 51, 234, 0.4)'
-          }}>
-            <Waves size={26} color="#fff" />
-          </div>
+          <img
+            src="/schwemes/schwepelogov1.jpg"
+            alt="Schwepe Logo"
+            style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'cover', border: '2px solid rgba(236, 72, 153, 0.6)', boxShadow: '0 0 16px rgba(147, 51, 234, 0.4)' }}
+          />
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, background: 'linear-gradient(90deg, #fff, #a855f7, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               SchwepeSwap

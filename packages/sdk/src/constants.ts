@@ -77,7 +77,7 @@ export const DEFAULT_TOKENS = [
     name: 'Schwepe Governance',
     address: '0xdd10620866c4f586b1213d3818811faf3718fce3',
     decimals: 18,
-    logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984/logo.png'
+    logoURI: '/schwemes/schwepelogov1.jpg'
   },
   {
     symbol: 'USDT',
