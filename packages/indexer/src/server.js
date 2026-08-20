@@ -1,6 +1,9 @@
 const http = require('http');
+const { BridgeIndexer } = require('./bridgeIndexer');
 
 const PORT = process.env.PORT || 4000;
+
+const bridge = new BridgeIndexer();
 
 const indexedData = {
   network: {
@@ -42,6 +45,45 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+  // --- Omnifungible Bridge -------------------------------------------------
+
+  // Mesh status: per-chain sync state, transfer counts, and the vault backing check.
+  if (url.pathname === '/api/bridge/status') {
+    res.writeHead(200);
+    return res.end(JSON.stringify(bridge.status()));
+  }
+
+  // Track one transfer by its LayerZero guid.
+  if (url.pathname.startsWith('/api/bridge/transfer/')) {
+    const guid = url.pathname.split('/').pop();
+    const transfer = bridge.getTransfer(guid);
+    res.writeHead(transfer ? 200 : 404);
+    return res.end(JSON.stringify(transfer || { error: 'Transfer not found', guid }));
+  }
+
+  // Transfer history, optionally filtered by wallet or status.
+  if (url.pathname === '/api/bridge/transfers') {
+    res.writeHead(200);
+    return res.end(
+      JSON.stringify(
+        bridge.listTransfers({
+          address: url.searchParams.get('address') || undefined,
+          status: url.searchParams.get('status') || undefined,
+          limit: Number(url.searchParams.get('limit') || 50)
+        })
+      )
+    );
+  }
+
+  // Solvency endpoint kept separate so monitoring can alert on it directly.
+  if (url.pathname === '/api/bridge/backing') {
+    const backing = bridge.status().backing;
+    res.writeHead(backing.solvent === false ? 500 : 200);
+    return res.end(JSON.stringify(backing));
+  }
+
   if (req.url === '/api/health') {
     res.writeHead(200);
     return res.end(JSON.stringify({ status: 'OK', message: 'SchwepeSwap Somnia Indexer operational' }));
@@ -73,6 +115,7 @@ const server = http.createServer((req, res) => {
 if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`🚀 SchwepeSwap Somnia Event Indexer listening on port ${PORT}`);
+    bridge.start();
     // Auto shutdown after test verification tick if environment variable is set
     if (process.env.TEST_SHUTDOWN === 'true') {
       setTimeout(() => {

@@ -49,6 +49,78 @@ export const SCHWEPESWAP_ADDRESSES = {
   }
 };
 
+/**
+ * Chains in the SCHWEPE Omnifungible Bridge mesh.
+ *
+ * Somnia is the home chain: the live SCHWEPE is locked in SchwepeOFTAdapter there.
+ * Every spoke runs a SchwepeOFT mirror whose supply is backed 1:1 by that vault.
+ *
+ * `eid` is the LayerZero V2 endpoint id, which is NOT the EVM chainId.
+ * Addresses verified against https://metadata.layerzero-api.com/v1/metadata/deployments
+ */
+export const BRIDGE_CHAINS = {
+  5031: {
+    slug: 'somnia',
+    role: 'home' as const,
+    chainId: 5031,
+    eid: 30380,
+    name: 'Somnia',
+    rpc: 'https://api.infra.mainnet.somnia.network/',
+    explorer: 'https://explorer.somnia.network',
+    nativeCurrency: { name: 'Somnia Token', symbol: 'SOMI', decimals: 18 },
+    endpointV2: '0x6f475642a6e85809b1c36fa62763669b1b48dd5b',
+    // The live SCHWEPE token that the vault locks.
+    token: SOMNIA_SCHWEPE_TOKEN_ADDRESS,
+    // SchwepeOFTAdapter — populated by scripts/deployBridge.js
+    bridge: ''
+  },
+  42161: {
+    slug: 'arbitrum',
+    role: 'spoke' as const,
+    chainId: 42161,
+    eid: 30110,
+    name: 'Arbitrum One',
+    rpc: 'https://arb1.arbitrum.io/rpc',
+    explorer: 'https://arbiscan.io',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    endpointV2: '0x1a44076050125825900e736c501f859c50fe728c',
+    // On spokes the OFT mirror IS the token, so both fields hold the same address.
+    token: '',
+    bridge: ''
+  },
+  4663: {
+    slug: 'robinhood',
+    role: 'spoke' as const,
+    chainId: 4663,
+    eid: 30416,
+    name: 'Robinhood Chain',
+    rpc: 'https://rpc.robinhoodchain.com',
+    explorer: 'https://explorer.robinhoodchain.com',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    endpointV2: '0x6f475642a6e85809b1c36fa62763669b1b48dd5b',
+    token: '',
+    bridge: ''
+  }
+};
+
+export type BridgeChainId = keyof typeof BRIDGE_CHAINS;
+
+export const BRIDGE_HOME_CHAIN_ID = 5031;
+
+/**
+ * Chains in display order — home first, then spokes alphabetically.
+ * Object.values() alone would order by numeric key, putting Robinhood (4663) ahead of Somnia.
+ */
+export const BRIDGE_CHAIN_LIST = Object.values(BRIDGE_CHAINS).sort((a, b) =>
+  a.role === b.role ? a.name.localeCompare(b.name) : a.role === 'home' ? -1 : 1
+);
+
+export const bridgeChainByEid = (eid: number) =>
+  Object.values(BRIDGE_CHAINS).find((c) => c.eid === eid);
+
+export const bridgeChain = (chainId: number) =>
+  (BRIDGE_CHAINS as Record<number, typeof BRIDGE_CHAINS[5031]>)[chainId];
+
 export const DEFAULT_TOKENS = [
   {
     symbol: 'SOMI',

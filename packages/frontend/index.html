@@ -15,6 +15,8 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <!-- Babel standalone for JSX in browser -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- ethers v6 for the Omnifungible Bridge (LayerZero OFT encoding) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 
   <style>
     :root {
@@ -315,6 +317,76 @@
       { symbol: 'SCHWEPE', name: 'Schwepe Token', address: SCHWEPE_TARGET, isNative: false }
     ];
 
+    // ---------------------------------------------------------------
+    // Omnifungible Bridge — LayerZero V2 OFT mesh
+    //
+    // Somnia holds the live SCHWEPE locked in SchwepeOFTAdapter (the vault).
+    // Arbitrum and Robinhood Chain run SchwepeOFT mirrors backed 1:1 by that vault.
+    // `eid` is the LayerZero endpoint id, which is NOT the EVM chainId.
+    // ---------------------------------------------------------------
+    const BRIDGE_CHAINS = {
+      5031: {
+        slug: 'somnia', role: 'home', chainId: 5031, eid: 30380, name: 'Somnia',
+        rpc: 'https://api.infra.mainnet.somnia.network/',
+        explorer: 'https://explorer.somnia.network',
+        nativeSymbol: 'SOMI',
+        endpointV2: '0x6f475642a6e85809b1c36fa62763669b1b48dd5b',
+        token: SCHWEPE_TARGET,
+        bridge: '' // SchwepeOFTAdapter — set after deployBridge.js
+      },
+      42161: {
+        slug: 'arbitrum', role: 'spoke', chainId: 42161, eid: 30110, name: 'Arbitrum One',
+        rpc: 'https://arb1.arbitrum.io/rpc',
+        explorer: 'https://arbiscan.io',
+        nativeSymbol: 'ETH',
+        endpointV2: '0x1a44076050125825900e736c501f859c50fe728c',
+        token: '', bridge: ''
+      },
+      4663: {
+        slug: 'robinhood', role: 'spoke', chainId: 4663, eid: 30416, name: 'Robinhood Chain',
+        rpc: 'https://rpc.robinhoodchain.com',
+        explorer: 'https://explorer.robinhoodchain.com',
+        nativeSymbol: 'ETH',
+        endpointV2: '0x6f475642a6e85809b1c36fa62763669b1b48dd5b',
+        token: '', bridge: ''
+      }
+    };
+
+    const BRIDGE_HOME_CHAIN_ID = 5031;
+    // Object.values() would order these by numeric key (4663 first); home chain should lead.
+    const BRIDGE_CHAIN_LIST = Object.values(BRIDGE_CHAINS)
+      .sort((a, b) => (a.role === b.role ? a.name.localeCompare(b.name) : a.role === 'home' ? -1 : 1));
+    const INDEXER_URL = 'http://localhost:4000';
+
+    const OFT_ABI = [
+      'function quoteSend((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam, bool payInLzToken) view returns ((uint256 nativeFee,uint256 lzTokenFee))',
+      'function send((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam, (uint256 nativeFee,uint256 lzTokenFee) fee, address refundAddress) payable returns ((bytes32 guid,uint64 nonce,(uint256 nativeFee,uint256 lzTokenFee) fee), (uint256 amountSentLD,uint256 amountReceivedLD))',
+      'function quoteOFT((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam) view returns ((uint256 minAmountLD,uint256 maxAmountLD), (int256 feeAmountLD,string description)[], (uint256 amountSentLD,uint256 amountReceivedLD))',
+      'function getAmountCanBeSent(uint32 dstEid) view returns (uint256 currentAmountInFlight, uint256 amountCanBeSent)',
+      'function paused() view returns (bool)',
+      'function totalLocked() view returns (uint256)'
+    ];
+
+    const BRIDGE_ERC20_ABI = [
+      'function allowance(address owner, address spender) view returns (uint256)',
+      'function approve(address spender, uint256 amount) returns (bool)',
+      'function balanceOf(address) view returns (uint256)'
+    ];
+
+    // LayerZero type-3 executor options: 0x0003 + worker(01) + size(0011) + optionType(01) + gas(uint128)
+    const buildExtraOptions = (gasLimit = 200000n) =>
+      '0x0003' + '01' + '0011' + '01' + gasLimit.toString(16).padStart(32, '0');
+
+    const buildSendParam = (dstEid, recipient, amountWei) => ({
+      dstEid,
+      to: ethers.zeroPadValue(ethers.getAddress(recipient), 32),
+      amountLD: amountWei,
+      minAmountLD: amountWei,
+      extraOptions: buildExtraOptions(),
+      composeMsg: '0x',
+      oftCmd: '0x'
+    });
+
     // Robust BigInt Wei to Ether formatting function (Zero float mixing error)
     const formatWeiToEther = (weiHexOrString) => {
       if (!weiHexOrString || weiHexOrString === '0x' || weiHexOrString === '0x0') return '0.0000';
@@ -330,6 +402,258 @@
         return '0.0000';
       }
     };
+
+    /**
+     * Omnifungible Bridge tab.
+     *
+     * Quotes the LayerZero delivery fee and the exact amount that will land, checks the
+     * pathway's remaining rate-limit capacity, then sends. Delivery status and the
+     * vault-backing check come from the indexer at /api/bridge/*.
+     */
+    function BridgeTab({ wallet }) {
+      const [fromChainId, setFromChainId] = useState(BRIDGE_HOME_CHAIN_ID);
+      const [toChainId, setToChainId] = useState(42161);
+      const [amount, setAmount] = useState('1000');
+      const [quote, setQuote] = useState(null);
+      const [quoting, setQuoting] = useState(false);
+      const [sending, setSending] = useState(false);
+      const [error, setError] = useState(null);
+      const [mesh, setMesh] = useState(null);
+      const [transfers, setTransfers] = useState([]);
+
+      const fromChain = BRIDGE_CHAINS[fromChainId];
+      const toChain = BRIDGE_CHAINS[toChainId];
+      const deployed = Boolean(fromChain.bridge && toChain.bridge);
+
+      const fmt = (wei, digits = 4) => {
+        try {
+          return Number(ethers.formatEther(wei)).toLocaleString('en-US', { maximumFractionDigits: digits });
+        } catch (e) { return '0'; }
+      };
+
+      useEffect(() => {
+        if (fromChainId === toChainId) {
+          const next = BRIDGE_CHAIN_LIST.find(c => c.chainId !== fromChainId);
+          if (next) setToChainId(next.chainId);
+        }
+      }, [fromChainId, toChainId]);
+
+      const refreshStatus = React.useCallback(async () => {
+        try {
+          const res = await fetch(INDEXER_URL + '/api/bridge/status');
+          if (res.ok) setMesh(await res.json());
+          if (wallet) {
+            const tRes = await fetch(INDEXER_URL + '/api/bridge/transfers?address=' + wallet + '&limit=8');
+            if (tRes.ok) setTransfers(await tRes.json());
+          }
+        } catch (e) {
+          setMesh(null); // Indexer offline must not block the send path.
+        }
+      }, [wallet]);
+
+      useEffect(() => {
+        refreshStatus();
+        const timer = setInterval(refreshStatus, 15000);
+        return () => clearInterval(timer);
+      }, [refreshStatus]);
+
+      useEffect(() => {
+        let cancelled = false;
+        const run = async () => {
+          setError(null);
+          const val = parseFloat(amount || '0');
+          if (!deployed || val <= 0 || !wallet) { setQuote(null); return; }
+          setQuoting(true);
+          try {
+            const provider = new ethers.JsonRpcProvider(fromChain.rpc, fromChain.chainId, { staticNetwork: true });
+            const oft = new ethers.Contract(fromChain.bridge, OFT_ABI, provider);
+            const amountWei = ethers.parseEther(amount);
+            const sendParam = buildSendParam(toChain.eid, wallet, amountWei);
+
+            const [oftQuote, fee, limits] = await Promise.all([
+              oft.quoteOFT(sendParam),
+              oft.quoteSend(sendParam, false),
+              oft.getAmountCanBeSent(toChain.eid)
+            ]);
+            if (cancelled) return;
+            const receipt = oftQuote[2];
+            setQuote({
+              nativeFee: fee.nativeFee,
+              amountSent: receipt.amountSentLD,
+              amountReceived: receipt.amountReceivedLD,
+              dust: amountWei - receipt.amountSentLD,
+              canBeSent: limits[1]
+            });
+          } catch (err) {
+            if (!cancelled) { setQuote(null); setError(err.shortMessage || err.message); }
+          } finally {
+            if (!cancelled) setQuoting(false);
+          }
+        };
+        const t = setTimeout(run, 400);
+        return () => { cancelled = true; clearTimeout(t); };
+      }, [amount, fromChainId, toChainId, wallet, deployed]);
+
+      const handleBridge = async () => {
+        if (!window.ethereum || !wallet || !quote) return;
+        setSending(true); setError(null);
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x' + fromChain.chainId.toString(16) }]
+          });
+          const browserProvider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await browserProvider.getSigner();
+          const amountWei = ethers.parseEther(amount);
+
+          // Only the home vault pulls a separate ERC-20; spoke mirrors are the token itself.
+          if (fromChainId === BRIDGE_HOME_CHAIN_ID) {
+            const token = new ethers.Contract(fromChain.token, BRIDGE_ERC20_ABI, signer);
+            const allowance = await token.allowance(wallet, fromChain.bridge);
+            if (allowance < amountWei) {
+              const approveTx = await token.approve(fromChain.bridge, amountWei);
+              await approveTx.wait();
+            }
+          }
+
+          const oft = new ethers.Contract(fromChain.bridge, OFT_ABI, signer);
+          const sendParam = buildSendParam(toChain.eid, wallet, amountWei);
+          const tx = await oft.send(sendParam, { nativeFee: quote.nativeFee, lzTokenFee: 0n }, wallet, { value: quote.nativeFee });
+          await tx.wait();
+
+          setTransfers(prev => [{
+            guid: tx.hash, status: 'in_transit', sentTx: tx.hash,
+            amountSent: amountWei.toString(),
+            from: { name: fromChain.name }, to: { name: toChain.name }, sentAt: Date.now()
+          }, ...prev]);
+          setTimeout(refreshStatus, 3000);
+        } catch (err) {
+          setError(err.shortMessage || err.message || 'Bridge transfer failed');
+        } finally {
+          setSending(false);
+        }
+      };
+
+      const backing = mesh && mesh.backing;
+      const overLimit = quote && quote.canBeSent < quote.amountSent;
+      const disabled = !wallet || !quote || sending || overLimit || !deployed;
+
+      const selectStyle = {
+        width: '100%', marginTop: '6px', background: 'rgba(11,17,32,0.85)',
+        border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px',
+        padding: '12px 14px', color: '#fff', fontWeight: 700, outline: 'none', cursor: 'pointer'
+      };
+
+      const Row = ({ label, value, color }) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+          <span style={{ color: '#64748b' }}>{label}</span>
+          <span style={{ color: color || '#fff', fontWeight: 700 }}>{value}</span>
+        </div>
+      );
+
+      return (
+        <div style={{ maxWidth: '520px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="glass-panel" style={{ padding: '26px' }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 900 }}>🌉 Omnifungible Bridge</h2>
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '20px' }}>
+              Move $SCHWEPE to any chain on command — LayerZero V2 OFT
+            </p>
+
+            {!deployed && (
+              <div style={{ background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', borderRadius: '12px', padding: '13px 15px', marginBottom: '16px', fontSize: '0.83rem', color: '#fde68a' }}>
+                ⚠️ Bridge contracts are not deployed on this route yet. Quotes and transfers stay
+                disabled until the vault and mirror addresses are configured.
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '10px', alignItems: 'end' }}>
+              <div>
+                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700 }}>From</label>
+                <select value={fromChainId} onChange={e => setFromChainId(Number(e.target.value))} style={selectStyle}>
+                  {BRIDGE_CHAIN_LIST.map(c => <option key={c.chainId} value={c.chainId}>{c.name}</option>)}
+                </select>
+              </div>
+              <div style={{ color: '#a855f7', fontSize: '1.2rem', paddingBottom: '12px' }}>→</div>
+              <div>
+                <label style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 700 }}>To</label>
+                <select value={toChainId} onChange={e => setToChainId(Number(e.target.value))} style={selectStyle}>
+                  {BRIDGE_CHAIN_LIST.filter(c => c.chainId !== fromChainId).map(c => (
+                    <option key={c.chainId} value={c.chainId}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(11,17,32,0.85)', padding: '18px', borderRadius: '18px', margin: '16px 0', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '8px' }}>Amount</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+                  style={{ background: 'none', border: 'none', color: '#fff', fontSize: '1.9rem', width: '60%', outline: 'none', fontWeight: 800 }} />
+                <span style={{ color: '#ec4899', fontWeight: 900 }}>SCHWEPE</span>
+              </div>
+            </div>
+
+            {quoting && <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Quoting delivery fee…</p>}
+
+            {quote && !quoting && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                <Row label="You receive" value={fmt(quote.amountReceived) + ' SCHWEPE'} color="#22c55e" />
+                <Row label="LayerZero fee" value={fmt(quote.nativeFee, 6) + ' ' + fromChain.nativeSymbol} />
+                {quote.dust > 0n && <Row label="Rounded off" value={fmt(quote.dust, 8) + ' SCHWEPE'} color="#94a3b8" />}
+                <Row label="Route capacity left" value={fmt(quote.canBeSent, 0) + ' SCHWEPE'} color={overLimit ? '#f59e0b' : '#94a3b8'} />
+              </div>
+            )}
+
+            {overLimit && (
+              <p style={{ color: '#f59e0b', fontSize: '0.82rem', marginBottom: '10px' }}>
+                Exceeds the current rate limit for {toChain.name}. Capacity refills continuously —
+                try a smaller amount or wait.
+              </p>
+            )}
+
+            {error && <p style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '10px', wordBreak: 'break-word' }}>{error}</p>}
+
+            <button onClick={handleBridge} disabled={disabled} className="btn-gradient"
+              style={{ width: '100%', justifyContent: 'center', padding: '14px', opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+              {sending ? 'Bridging…' : !wallet ? 'Connect Wallet' : 'Bridge to ' + toChain.name}
+            </button>
+          </div>
+
+          {backing && backing.locked != null && (
+            <div className="glass-panel" style={{ padding: '15px 18px', fontSize: '0.82rem', color: backing.solvent ? '#94a3b8' : '#f87171' }}>
+              {backing.solvent
+                ? '🛡️ ' + fmt(backing.locked, 0) + ' SCHWEPE locked on Somnia backs ' + fmt(backing.minted, 0) + ' bridged'
+                : '⚠️ Backing shortfall of ' + fmt(backing.shortfall, 0) + ' SCHWEPE — bridging is unsafe'}
+            </div>
+          )}
+
+          {transfers.length > 0 && (
+            <div className="glass-panel" style={{ padding: '18px' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 900, marginBottom: '12px' }}>Recent transfers</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {transfers.map(t => {
+                  const tone = t.status === 'delivered' ? { c: '#22c55e', l: 'Delivered' }
+                    : t.status === 'stuck' ? { c: '#f87171', l: 'Stuck' }
+                    : { c: '#38bdf8', l: 'In transit' };
+                  return (
+                    <div key={t.guid || t.sentTx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(11,17,32,0.7)', borderRadius: '12px', padding: '11px 13px', fontSize: '0.82rem' }}>
+                      <div>
+                        <div style={{ color: '#fff', fontWeight: 700 }}>{fmt(t.amountSent || '0')} SCHWEPE</div>
+                        <div style={{ color: '#64748b' }}>{(t.from && t.from.name) || '—'} → {(t.to && t.to.name) || '—'}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: tone.c, fontWeight: 700 }}>{tone.l}</span>
+                        {t.sentTx && <a href={'https://layerzeroscan.com/tx/' + t.sentTx} target="_blank" style={{ color: '#38bdf8' }}>↗</a>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
 
     function App() {
       const [activeTab, setActiveTab] = useState('farms');
@@ -924,7 +1248,8 @@
                 { id: 'farms', label: '🌾 MasterChef Hub' },
                 { id: 'agentic', label: '🤖 Agentic Keeper' },
                 { id: 'swap', label: '⇄ Swap' },
-                { id: 'liquidity', label: '💧 Liquidity' }
+                { id: 'liquidity', label: '💧 Liquidity' },
+                { id: 'bridge', label: '🌉 Bridge' }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1166,6 +1491,8 @@
                 <button className="btn-gradient" style={{ width: '100%' }}>Supply SOMI / SCHWEPE Liquidity</button>
               </div>
             )}
+
+            {activeTab === 'bridge' && <BridgeTab wallet={wallet} />}
           </main>
 
           {/* LIVE PIPELINE MODAL */}

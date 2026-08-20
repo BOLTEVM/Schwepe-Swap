@@ -4,6 +4,7 @@ import SwapCard from './components/SwapCard';
 import LiquidityCard from './components/LiquidityCard';
 import FarmingCard from './components/FarmingCard';
 import PipelineCard from './components/PipelineCard';
+import BridgeCard from './components/BridgeCard';
 import { SchwepeWeb3Pipeline } from '../../sdk/src/pipeline';
 
 export default function App() {
@@ -193,6 +194,8 @@ export default function App() {
         {activeTab === 'liquidity' && <LiquidityCard />}
 
         {activeTab === 'farms' && <FarmingCard />}
+
+        {activeTab === 'bridge' && <BridgeCard walletAddress={walletAddress} />}
 
         {activeTab === 'pipeline' && (
           <PipelineCard

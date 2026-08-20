@@ -6,8 +6,10 @@ const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "0x000000000000000000000
 
 module.exports = {
   solidity: {
-    version: "0.8.20",
+    version: "0.8.22",
     settings: {
+      // Required by SchwepePair (stack too deep) and recommended by LayerZero for OFT.
+      viaIR: true,
       optimizer: {
         enabled: true,
         runs: 200
@@ -24,6 +26,17 @@ module.exports = {
     somniaTestnet: {
       url: SOMNIA_TESTNET_RPC,
       chainId: 50312,
+      accounts: [PRIVATE_KEY]
+    },
+    // Omnifungible Bridge spoke chains
+    arbitrum: {
+      url: process.env.ARBITRUM_RPC || "https://arb1.arbitrum.io/rpc",
+      chainId: 42161,
+      accounts: [PRIVATE_KEY]
+    },
+    robinhood: {
+      url: process.env.ROBINHOOD_RPC || "https://rpc.robinhoodchain.com",
+      chainId: 4663,
       accounts: [PRIVATE_KEY]
     }
   },
